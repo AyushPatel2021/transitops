@@ -1,5 +1,7 @@
+from datetime import date
 from datetime import datetime
 
+from backend.core import api
 from backend.core import fields
 from backend.core.exceptions import UserError
 from backend.core.znova_model import ZnovaModel
@@ -23,11 +25,19 @@ class Trip(ZnovaModel):
     source = fields.Char(label="Source", required=True, size=120, tracking=True)
     destination = fields.Char(label="Destination", required=True, size=120, tracking=True)
     vehicle_id = fields.Many2one("vehicle", label="Vehicle", required=True, domain="[('status', '=', 'available')]", tracking=True)
-    driver_id = fields.Many2one("driver", label="Driver", required=True, domain="[('status', '=', 'available')]", tracking=True)
+    driver_id = fields.Many2one(
+        "driver",
+        label="Driver",
+        required=True,
+        domain=f"[('status', '=', 'available'), ('license_expiry_date', '>=', '{date.today().isoformat()}')]",
+        tracking=True,
+    )
     cargo_weight = fields.Float(label="Cargo Weight (kg)", required=True, tracking=True)
     planned_distance = fields.Float(label="Planned Distance (km)", required=True)
     actual_distance = fields.Float(label="Actual Distance (km)")
     fuel_consumed = fields.Float(label="Fuel Consumed (L)")
+    fuel_unit_cost = fields.Float(label="Fuel Cost (1 L)")
+    total_fuel_cost = fields.Float(label="Total Fuel Cost", compute="_compute_total_fuel_cost", store=False, readonly=True)
     final_odometer = fields.Float(label="Final Odometer")
     status = fields.Selection(
         [("draft", "Draft"), ("dispatched", "Dispatched"), ("completed", "Completed"), ("cancelled", "Cancelled")],
@@ -37,9 +47,10 @@ class Trip(ZnovaModel):
         readonly=True,
         tracking=True,
     )
-    created_by = fields.Many2one("user", label="Created By", required=True, readonly=True)
+    created_by = fields.Many2one("user", label="Created By", readonly=True)
     dispatched_at = fields.DateTime(label="Dispatched At", readonly=True)
     completed_at = fields.DateTime(label="Completed At", readonly=True)
+    fuel_log_count = fields.Integer(label="Fuel Log Count", compute="_compute_fuel_log_count", store=False, readonly=True)
 
     _role_permissions = {
         ROLE_ADMIN: ADMIN_ALL,
@@ -64,7 +75,6 @@ class Trip(ZnovaModel):
             "show_audit_log": True,
             "groups": [
                 {"title": "Trip", "fields": ["source"], "position": "header"},
-                {"title": "Audit", "fields": ["created_by", "dispatched_at", "completed_at"], "position": "right"},
             ],
             "tabs": [
                 {
@@ -77,7 +87,14 @@ class Trip(ZnovaModel):
                 {
                     "title": "Completion",
                     "groups": [
-                        {"title": "Final Readings", "fields": ["actual_distance", "fuel_consumed", "final_odometer"]},
+                        {"title": "Final Readings", "fields": ["actual_distance", "final_odometer"]},
+                        {"title": "Fuel", "fields": ["fuel_consumed", "fuel_unit_cost", "total_fuel_cost"]},
+                    ],
+                },
+                {
+                    "title": "Audit",
+                    "groups": [
+                        {"title": "Audit", "fields": ["created_by", "dispatched_at", "completed_at"]},
                     ],
                 },
             ],
@@ -85,6 +102,16 @@ class Trip(ZnovaModel):
                 {"name": "dispatch", "label": "Dispatch", "type": "primary", "method": "action_dispatch", "invisible": "[('status', '!=', 'draft')]"},
                 {"name": "complete", "label": "Complete Trip", "type": "primary", "method": "action_complete", "invisible": "[('status', '!=', 'dispatched')]"},
                 {"name": "cancel", "label": "Cancel", "type": "secondary", "method": "action_cancel", "invisible": "[('status', 'in', ['completed', 'cancelled'])]"},
+            ],
+            "smart_buttons": [
+                {
+                    "name": "fuel_log",
+                    "label": "Fuel Log",
+                    "icon": "Fuel",
+                    "field": "fuel_log_count",
+                    "method": "action_view_fuel_log",
+                    "invisible": "[('status', '!=', 'completed')]",
+                },
             ],
         },
     }
@@ -101,23 +128,86 @@ class Trip(ZnovaModel):
         ],
     }
 
+    @classmethod
+    def create(cls, db, vals, **kwargs):
+        vals = vals.copy()
+        user_id = kwargs.get("user_id")
+        if user_id and not vals.get("created_by"):
+            vals["created_by"] = user_id
+
+        cls._validate_trip_values_for_db(db, vals)
+        return super().create(db, vals, **kwargs)
+
     def write(self, *args, **kwargs):
-        vals = args[1] if len(args) == 2 else args[0]
+        vals = args[1] if len(args) == 2 else args[0] if args else kwargs.get("vals", {})
+        if (
+            "status" in vals
+            and vals.get("status") != self.status
+            and not getattr(self, "_allow_status_transition", False)
+        ):
+            raise UserError("Trip status can only be changed through Dispatch, Complete, or Cancel actions.")
+
         merged = {
             "vehicle_id": self.vehicle.id if self.vehicle else None,
             "cargo_weight": self.cargo_weight,
+            "fuel_unit_cost": self.fuel_unit_cost,
         }
         merged.update(vals)
         self._validate_trip_values(merged)
         return super().write(*args, **kwargs)
 
+    @api.depends("fuel_consumed", "fuel_unit_cost")
+    def _compute_total_fuel_cost(self):
+        self.total_fuel_cost = self._get_total_fuel_cost()
+
+    def _compute_fuel_log_count(self):
+        self.fuel_log_count = len(self.env["fuel.log"].search([("trip_id", "=", self.id)])) if self.id else 0
+
+    def _get_total_fuel_cost(self):
+        if self.fuel_consumed is None or self.fuel_unit_cost is None:
+            return 0.0
+        return float(self.fuel_consumed) * float(self.fuel_unit_cost)
+
+    def __getattr__(self, name):
+        if name == "total_fuel_cost":
+            return self._get_total_fuel_cost()
+        if name == "fuel_log_count":
+            return len(self.env["fuel.log"].search([("trip_id", "=", self.id)])) if self.id else 0
+        raise AttributeError(name)
+
+    def action_view_fuel_log(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "fuel.log",
+            "view_mode": "list,form",
+            "domain": [("trip_id", "=", self.id)],
+            "name": f"Fuel Log — {self.destination}",
+        }
+
     def _validate_trip_values(self, vals):
+        vehicle = vals.get("vehicle_id")
+        cargo = vals.get("cargo_weight")
+        fuel_unit_cost = vals.get("fuel_unit_cost")
+        if isinstance(vehicle, dict):
+            vehicle = vehicle.get("id")
+        if vehicle and cargo is not None:
+            vehicle_rec = self.env["vehicle"].browse(vehicle)
+            if vehicle_rec and float(cargo) > float(vehicle_rec.max_load_capacity):
+                raise UserError("Cargo weight cannot exceed vehicle max load capacity.")
+        if fuel_unit_cost is not None and float(fuel_unit_cost) < 0:
+            raise UserError("Fuel cost per liter cannot be negative.")
+
+    @classmethod
+    def _validate_trip_values_for_db(cls, db, vals):
         vehicle = vals.get("vehicle_id")
         cargo = vals.get("cargo_weight")
         if isinstance(vehicle, dict):
             vehicle = vehicle.get("id")
         if vehicle and cargo is not None:
-            vehicle_rec = self.env["vehicle"].browse(vehicle)
+            from backend.core.base_model import Environment
+
+            vehicle_rec = Environment(db)["vehicle"].browse(vehicle)
             if vehicle_rec and float(cargo) > float(vehicle_rec.max_load_capacity):
                 raise UserError("Cargo weight cannot exceed vehicle max load capacity.")
 
@@ -135,7 +225,11 @@ class Trip(ZnovaModel):
         if self.status != "draft":
             raise UserError("Only draft trips can be dispatched.")
         self._assert_dispatch_assets_available()
-        self.write({"status": "dispatched", "dispatched_at": datetime.utcnow()})
+        self._allow_status_transition = True
+        try:
+            self.write({"status": "dispatched", "dispatched_at": datetime.utcnow()})
+        finally:
+            self._allow_status_transition = False
         self.vehicle.write({"status": "on_trip"})
         self.driver.write({"status": "on_trip"})
         return notify("Trip Dispatched", f"Trip to {self.destination} has been dispatched.")
@@ -143,18 +237,22 @@ class Trip(ZnovaModel):
     def action_complete(self):
         if self.status != "dispatched":
             raise UserError("Only dispatched trips can be completed.")
-        if self.final_odometer is None or self.fuel_consumed is None:
-            raise UserError("Final odometer and fuel consumed are required before completing a trip.")
+        if self.final_odometer is None or self.fuel_consumed is None or self.fuel_unit_cost is None:
+            raise UserError("Final odometer, fuel consumed, and fuel cost per liter are required before completing a trip.")
         if self.final_odometer < self.vehicle.odometer:
             raise UserError("Final odometer cannot be lower than the vehicle's current odometer.")
-        self.write({"status": "completed", "completed_at": datetime.utcnow()})
+        self._allow_status_transition = True
+        try:
+            self.write({"status": "completed", "completed_at": datetime.utcnow()})
+        finally:
+            self._allow_status_transition = False
         self.vehicle.write({"status": "available", "odometer": self.final_odometer})
         self.driver.write({"status": "available"})
         self.env["fuel.log"].create({
             "vehicle_id": self.vehicle.id,
             "trip_id": self.id,
             "liters": self.fuel_consumed,
-            "cost": 0,
+            "cost": self.total_fuel_cost,
             "odometer_reading": self.final_odometer,
         })
         return notify("Trip Completed", f"Trip to {self.destination} has been completed.")
@@ -163,7 +261,11 @@ class Trip(ZnovaModel):
         if self.status not in ("draft", "dispatched"):
             raise UserError("Completed and cancelled trips are terminal.")
         was_dispatched = self.status == "dispatched"
-        self.write({"status": "cancelled"})
+        self._allow_status_transition = True
+        try:
+            self.write({"status": "cancelled"})
+        finally:
+            self._allow_status_transition = False
         if was_dispatched:
             self.vehicle.write({"status": "available"})
             self.driver.write({"status": "available"})

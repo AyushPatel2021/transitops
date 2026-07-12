@@ -11,17 +11,12 @@ ADMIN_ALL = {"create": True, "read": True, "write": True, "delete": True, "domai
 
 
 def get_action_user(record):
-    action_user_id = getattr(record, "_action_user_id", None) or getattr(record, "_audit_user_id", None)
-    if action_user_id:
-        from sqlalchemy.orm import object_session
-        from backend.core.registry import registry
-
-        db = object_session(record)
-        user_model = registry.get_model("user")
-        if db and user_model:
-            return db.query(user_model).filter(user_model.id == action_user_id).first()
-
     env = getattr(record, "env", None)
+    action_user_id = getattr(record, "_action_user_id", None) or getattr(record, "_audit_user_id", None)
+    if action_user_id and env:
+        from backend.core.base_model import Environment
+
+        return Environment(env.db, user_id=action_user_id).user
     return env.user if env else None
 
 

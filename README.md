@@ -16,12 +16,11 @@ Implemented:
 - Region, Vehicle, Driver, Trip, Maintenance Log, Fuel Log, and Expense model files split by model type.
 - Region seed data and base operational role seed data.
 - Phase 2 master data models with CRUD metadata, selections, uniqueness constraints, and tests.
+- Phase 3 trip engine with authenticated `created_by`, cargo validation, dispatch eligibility, status transitions, double-booking prevention, completion readings, automatic fuel log creation, and lifecycle tests.
+- Phase 4 maintenance and finance engine with maintenance start/close automation, one-active-maintenance constraint, fuel and expense validations, vehicle operational cost rollup, and tests.
 
 Planned by the module spec:
 
-- Trip dispatch engine with server-side dispatch, complete, cancel, capacity, double-booking, driver eligibility, and vehicle eligibility rules.
-- Maintenance workflow that moves vehicles into and out of shop status.
-- Fuel and expense cost rollups.
 - Dashboard KPIs and filters.
 - Fuel Efficiency, Fleet Utilization, Operational Cost, and ROI reports with CSV export.
 - Demo data for a full workflow.
@@ -69,16 +68,16 @@ draft -> dispatched -> cancelled
 draft -> cancelled
 ```
 
-The planned trip engine validates capacity, driver availability, license validity, vehicle availability, double-booking, status transitions, odometer updates, and automatic fuel-log creation on completion.
+The trip engine validates capacity, driver availability, license validity, vehicle availability, double-booking, status transitions, odometer updates, and automatic fuel-log creation on completion.
 
 ### Maintenance And Finance
 
-The spec includes:
+Implemented:
 
 - Maintenance logs with active/closed status and vehicle shop-state automation.
 - Fuel logs linked to vehicles and optionally trips.
 - Expenses by vehicle and expense type.
-- Cost rollups for operational reports.
+- Vehicle operational cost rollup from fuel costs plus maintenance costs.
 
 ### Reports
 

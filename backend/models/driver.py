@@ -43,14 +43,30 @@ class Driver(ZnovaModel):
         tracking=True,
     )
     region_id = fields.Many2one("region", label="Region", domain="[('active', '=', True)]")
+    trip_count = fields.Integer(label="Trip Count", compute="_compute_trip_count", store=False, readonly=True)
 
     def _compute_license_valid(self):
         self.license_valid = bool(self.license_expiry_date and self.license_expiry_date >= date.today())
 
+    def _compute_trip_count(self):
+        self.trip_count = len(self.env["trip"].search([("driver_id", "=", self.id)])) if self.id else 0
+
     def __getattr__(self, name):
         if name == "license_valid":
             return bool(self.license_expiry_date and self.license_expiry_date >= date.today())
+        if name == "trip_count":
+            return len(self.env["trip"].search([("driver_id", "=", self.id)])) if self.id else 0
         raise AttributeError(name)
+
+    def action_view_trips(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "trip",
+            "view_mode": "list,form",
+            "domain": [("driver_id", "=", self.id)],
+            "name": f"Trips — {self.name}",
+        }
 
     _role_permissions = {
         ROLE_ADMIN: ADMIN_ALL,
@@ -88,6 +104,16 @@ class Driver(ZnovaModel):
             "header_buttons": [
                 {"name": "suspend", "label": "Suspend", "type": "secondary", "method": "action_suspend", "invisible": "[('status', '=', 'suspended')]"},
                 {"name": "reinstate", "label": "Reinstate", "type": "primary", "method": "action_reinstate", "invisible": "[('status', '!=', 'suspended')]"},
+            ],
+            "smart_buttons": [
+                {
+                    "name": "trips",
+                    "label": "Trips",
+                    "icon": "Route",
+                    "field": "trip_count",
+                    "method": "action_view_trips",
+                    "groups": ["admin", "fleet_manager", "safety_officer"],
+                },
             ],
         },
     }

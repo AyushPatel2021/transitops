@@ -36,6 +36,14 @@ class User(ZnovaModel):
         ("light", "Light"),
         ("dark", "Dark")
     ], label="Theme", default="dark", tracking=True)
+
+    # Smart button count — only meaningful when role = driver
+    driver_profile_count = fields.Integer(
+        label="Driver Profile",
+        compute="_compute_driver_profile_count",
+        store=False,
+        readonly=True,
+    )
     
     # Domain context
     def get_domain_context(self):
@@ -45,6 +53,38 @@ class User(ZnovaModel):
             'role_id': self.role_id,
             'role_name': self.role.name if self.role else None,
             'is_active': self.is_active
+        }
+
+    def _compute_driver_profile_count(self):
+        """Count linked driver records — 0 or 1."""
+        if not self.id:
+            self.driver_profile_count = 0
+            return
+        results = self.env["driver"].search([("user_id", "=", self.id)], limit=1)
+        self.driver_profile_count = 1 if results else 0
+
+    def __getattr__(self, name):
+        if name == "driver_profile_count":
+            if not self.id:
+                return 0
+            results = self.env["driver"].search([("user_id", "=", self.id)], limit=1)
+            return 1 if results else 0
+        raise AttributeError(name)
+
+    def action_view_driver_profile(self):
+        """Navigate to the linked driver record for this user."""
+        self.ensure_one()
+        drivers = self.env["driver"].search([("user_id", "=", self.id)], limit=1)
+        if not drivers:
+            from backend.core.exceptions import UserError
+            raise UserError("No driver profile linked to this user.")
+        driver = drivers[0]
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "driver",
+            "view_mode": "form",
+            "res_id": driver.id,
+            "name": f"Driver — {driver.name}",
         }
 
     # Model-level role permissions for User management
@@ -166,7 +206,7 @@ class User(ZnovaModel):
                     "label": "Reset Password",
                     "type": "secondary",
                     "method": "action_reset_password",
-                    "invisible": "[('id', '=', False)]"  # Only show on existing records
+                    "invisible": "[('id', '=', False)]"
                 },
                 {
                     "name": "toggle_active",
@@ -181,7 +221,17 @@ class User(ZnovaModel):
                     "method": "action_unlock_account",
                     "invisible": "[('locked_until', '=', False)]"
                 }
-            ]
+            ],
+            "smart_buttons": [
+                {
+                    "name": "driver_profile",
+                    "label": "Driver Profile",
+                    "icon": "UserRoundCheck",
+                    "field": "driver_profile_count",
+                    "method": "action_view_driver_profile",
+                    "groups": ["admin"],
+                },
+            ],
         },
         "list": {
             "fields": ["full_name", "email", "role_id", "is_active", "last_login_at"],
