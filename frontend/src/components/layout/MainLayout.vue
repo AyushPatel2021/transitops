@@ -8,9 +8,9 @@
       </button>
       <div class="mobile-logo">
         <div class="logo-container">
-          <img :src="logoIcon" alt="Znova" class="mobile-logo-img" />
+          <img :src="logoIcon" alt="TransitOps" class="mobile-logo-img" />
         </div>
-        <span class="brand-name">Znova</span>
+        <span class="brand-name">TransitOps</span>
       </div>
       <div class="mobile-header-actions">
         <NotificationBell />
@@ -32,9 +32,9 @@
     <aside class="sidebar" :class="{ 'mobile-open': isMobileMenuOpen }">
       <div class="sidebar-header" data-id="clean-header">
         <div class="logo-container">
-          <img :src="logoIcon" alt="Znova" class="sidebar-logo-icon" />
+          <img :src="logoIcon" alt="TransitOps" class="sidebar-logo-icon" />
         </div>
-        <span v-if="!effectiveCollapsed" class="brand-name">Znova</span>
+        <span v-if="!effectiveCollapsed" class="brand-name">TransitOps</span>
       </div>
 
       <nav class="sidebar-nav dark-scrollbar">
@@ -235,8 +235,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import logoWithText from '@/assets/znova_logo_in_text_1.png';
-import logoIcon from '@/assets/znova_logo_no_bg.png';
 import { 
   Menu,
   X,
@@ -244,20 +242,33 @@ import {
   ChevronRight, 
   LayoutDashboard, 
   MonitorSmartphone, 
+  BusFront,
   Users, 
   User,
+  UserCog,
+  UserRoundCheck,
   ShieldCheck, 
   Building2, 
+  MapPinned,
   LayoutGrid, 
   LogOut,
   ClipboardList,
+  Route,
+  Navigation,
   Box,
   ChevronDown,
   Clock,
   Search,
   Database,
   Settings,
-  BarChart3
+  BarChart3,
+  Wrench,
+  Fuel,
+  ReceiptText,
+  Gauge,
+  Activity,
+  TrendingUp,
+  BadgeDollarSign
 } from 'lucide-vue-next';
 import NotificationContainer from '../common/NotificationContainer.vue';
 import NotificationBell from '../common/NotificationBell.vue';
@@ -267,6 +278,8 @@ import { useUserStore } from '../../stores/userStore';
 import { useBreadcrumbs } from '../../composables/useBreadcrumbs';
 import { useErrorHandler } from '../../composables/useErrorHandler';
 import api from '../../core/api';
+import logoIcon from '../../assets/transitops_mark.svg';
+
 
 /**
  * MainLayout Component - Secure User Data Management
@@ -301,16 +314,29 @@ interface MenuGroup {
 const iconMap: Record<string, any> = {
   LayoutDashboard,
   MonitorSmartphone,
+  BusFront,
   Users,
+  UserCog,
+  UserRoundCheck,
   ShieldCheck,
   Building2,
+  MapPinned,
   LayoutGrid,
   ClipboardList,
+  Route,
+  Navigation,
   Box,
   Clock,
   Database,
   Settings,
-  BarChart3
+  BarChart3,
+  Wrench,
+  Fuel,
+  ReceiptText,
+  Gauge,
+  Activity,
+  TrendingUp,
+  BadgeDollarSign
 };
 
 const { requestReset, trail, trimToIndex } = useBreadcrumbs();
@@ -323,9 +349,25 @@ const profileMenuRef = ref<HTMLElement | null>(null);
 const mobileProfileRef = ref<HTMLElement | null>(null);
 
 const isActivePath = (path: string) => {
-  const currentPath = router?.currentRoute?.value?.path || '';
-  if (path === '/') return currentPath === '/';
-  return currentPath === path || currentPath.startsWith(`${path}/`);
+  const currentRoute = router?.currentRoute?.value;
+  const targetRoute = router.resolve(path);
+  const currentPath = currentRoute?.path || '';
+  const targetPath = targetRoute.path || path;
+  const targetHasQuery = Object.keys(targetRoute.query || {}).length > 0;
+  const currentIsReportView = currentRoute?.query?.report !== undefined;
+
+  if (targetHasQuery) {
+    return currentRoute?.fullPath === targetRoute.fullPath;
+  }
+
+  if (targetPath.startsWith('/models/')) {
+    return !currentIsReportView && (
+      currentPath === targetPath || currentPath.startsWith(`${targetPath}/`)
+    );
+  }
+
+  if (targetPath === '/') return currentPath === '/';
+  return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
 };
 
 // Computed breadcrumbs that shows page name when trail is empty (non-model screens)
@@ -630,18 +672,14 @@ const getInitials = (name: string) => {
     .logo-container {
       width: 32px;
       height: 32px;
-      background: linear-gradient(135deg, v.$primary-color, #6366f1);
-      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 5px;
 
       .mobile-logo-img {
         width: 100%;
         height: 100%;
         object-fit: contain;
-        filter: brightness(0) invert(1);
       }
     }
 
@@ -715,19 +753,15 @@ const getInitials = (name: string) => {
     .logo-container {
       width: 36px;
       height: 36px;
-      background: linear-gradient(135deg, v.$primary-color, #3b82f6);
-      border-radius: v.$radius-md;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      padding: 6px;
       
       .sidebar-logo-icon {
         width: 100%;
         height: 100%;
         object-fit: contain;
-        filter: brightness(0) invert(1);
       }
     }
 

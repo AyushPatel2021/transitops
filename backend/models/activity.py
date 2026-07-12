@@ -24,12 +24,5 @@ class ActivityLog(ZnovaModel):
             "write": True,
             "delete": True,
             "domain": []
-        },
-        "user": {
-            "create": False,
-            "read": True,
-            "write": False,
-            "delete": False,
-            "domain": [("performed_by_id", "=", "user.id")]  # Only own activity
         }
     }

@@ -54,7 +54,7 @@ def create_comprehensive_jwt_token(user, expires_delta: Optional[timedelta] = No
         "user_id": user.id,
         "email": user.email,
         "full_name": user.full_name,
-        "role": user.role.name if user.role else "user",
+        "role": user.role.name if user.role else "unassigned",
         "permissions": permissions,
         "preferences": {
             "show_notification_toasts": user.show_notification_toasts,

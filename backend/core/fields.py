@@ -6,6 +6,7 @@ and UI metadata.
 
 from sqlalchemy import Column, String, Text as SQLText, Date as SQLDate, DateTime as SQLDateTime, Boolean as SQLBoolean, ForeignKey, JSON as SQLJSON, Table
 from sqlalchemy import Integer as SQLInteger
+from sqlalchemy import Float as SQLFloat
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Union
@@ -15,6 +16,15 @@ from backend.core.registry import registry
 
 CORE_TABLE_ALIASES = {
     "user": "users",
+    "role": "roles",
+    "timezone": "timezones",
+    "region": "regions",
+    "driver": "drivers",
+    "vehicle": "vehicles",
+    "trip": "trips",
+    "maintenance.log": "maintenance_logs",
+    "fuel.log": "fuel_logs",
+    "expense": "expenses",
 }
 
 
@@ -25,7 +35,8 @@ class BaseField:
                  readonly: Union[bool, str] = False, invisible: Union[bool, str] = False, 
                  help: str = None, default: Any = None, domain: str = None, 
                  widget: str = None, compute: str = None, store: bool = None, 
-                 onchange: str = None, tracking: bool = False, **kwargs):
+                 onchange: str = None, tracking: bool = False, unique: bool = False,
+                 **kwargs):
         self.label = label
         self.required = required
         self.readonly = readonly
@@ -39,6 +50,7 @@ class BaseField:
         self.store = store if store is not None else (False if compute else True)
         self.onchange = onchange
         self.tracking = tracking  # Track field changes in audit log
+        self.unique = unique
         self.kwargs = kwargs
     
     def get_column(self, field_name: str) -> Column:
@@ -64,7 +76,7 @@ class BaseField:
             metadata["invisible"] = self.invisible
         if self.help:
             metadata["help"] = self.help
-        if self.default is not None:
+        if self.default is not None and not callable(self.default):
             metadata["default"] = self.default
         if self.domain:
             metadata["domain"] = self.domain
@@ -77,6 +89,8 @@ class BaseField:
             metadata["onchange"] = self.onchange
         if self.tracking:
             metadata["tracking"] = self.tracking
+        if self.unique:
+            metadata["unique"] = self.unique
             
         # Add any additional kwargs to metadata
         for key, value in self.kwargs.items():
@@ -84,6 +98,13 @@ class BaseField:
                 metadata[key] = value
             
         return metadata
+
+    def get_column_kwargs(self) -> Dict[str, Any]:
+        return {
+            "nullable": not self._is_always_required,
+            "default": self.default,
+            "unique": self.unique,
+        }
     
     def get_relationship(self, field_name: str, model_class_name: str = None, model_tablename: str = None):
         """Generate SQLAlchemy relationship (to be overridden by relational fields)"""
@@ -101,7 +122,7 @@ class Char(BaseField):
     def get_column(self, field_name: str) -> Column:
         if not self.store:
             return None
-        return Column(String(self.size), nullable=not self._is_always_required, default=self.default)
+        return Column(String(self.size), **self.get_column_kwargs())
 
 
 class Text(BaseField):
@@ -111,7 +132,7 @@ class Text(BaseField):
     def get_column(self, field_name: str) -> Column:
         if not self.store:
             return None
-        return Column(SQLText, nullable=not self._is_always_required, default=self.default)
+        return Column(SQLText, **self.get_column_kwargs())
 
 
 class Integer(BaseField):
@@ -121,7 +142,17 @@ class Integer(BaseField):
     def get_column(self, field_name: str) -> Column:
         if not self.store:
             return None
-        return Column(SQLInteger, nullable=not self._is_always_required, default=self.default)
+        return Column(SQLInteger, **self.get_column_kwargs())
+
+
+class Float(BaseField):
+    """Floating point number field"""
+    field_type = "float"
+
+    def get_column(self, field_name: str) -> Column:
+        if not self.store:
+            return None
+        return Column(SQLFloat, **self.get_column_kwargs())
 
 
 class Boolean(BaseField):
@@ -131,7 +162,7 @@ class Boolean(BaseField):
     def get_column(self, field_name: str) -> Column:
         if not self.store:
             return None
-        return Column(SQLBoolean, nullable=not self._is_always_required, default=self.default)
+        return Column(SQLBoolean, **self.get_column_kwargs())
 
 
 class Date(BaseField):
@@ -141,7 +172,7 @@ class Date(BaseField):
     def get_column(self, field_name: str) -> Column:
         if not self.store:
             return None
-        return Column(SQLDate, nullable=not self._is_always_required, default=self.default)
+        return Column(SQLDate, **self.get_column_kwargs())
 
 
 class DateTime(BaseField):
@@ -151,7 +182,7 @@ class DateTime(BaseField):
     def get_column(self, field_name: str) -> Column:
         if not self.store:
             return None
-        return Column(SQLDateTime, nullable=not self._is_always_required, default=self.default)
+        return Column(SQLDateTime, **self.get_column_kwargs())
 
 
 class JSON(BaseField):
@@ -161,7 +192,7 @@ class JSON(BaseField):
     def get_column(self, field_name: str) -> Column:
         if not self.store:
             return None
-        return Column(SQLJSON, nullable=not self._is_always_required, default=self.default)
+        return Column(SQLJSON, **self.get_column_kwargs())
 
 
 class Selection(BaseField):
@@ -177,7 +208,7 @@ class Selection(BaseField):
     def get_column(self, field_name: str) -> Column:
         if not self.store:
             return None
-        return Column(String(50), nullable=not self._is_always_required, default=self.default)
+        return Column(String(50), **self.get_column_kwargs())
     
     def get_ui_metadata(self, field_name: str) -> Dict[str, Any]:
         metadata = super().get_ui_metadata(field_name)
@@ -216,7 +247,8 @@ class Many2one(BaseField):
         return Column(
             SQLInteger,
             ForeignKey(f"{table_name}.id", ondelete=self.ondelete, use_alter=self.use_alter, name=fk_name),
-            nullable=not self._is_always_required
+            nullable=not self._is_always_required,
+            unique=self.unique,
         )
     
     def get_relationship(self, field_name: str, model_class_name: str = None, model_tablename: str = None):
@@ -465,7 +497,7 @@ class Image(BaseField):
     def get_column(self, field_name: str) -> Column:
         if not self.store:
             return None
-        return Column(SQLText, nullable=not self._is_always_required)
+        return Column(SQLText, nullable=not self._is_always_required, unique=self.unique)
     
     def get_ui_metadata(self, field_name: str) -> Dict[str, Any]:
         metadata = super().get_ui_metadata(field_name)

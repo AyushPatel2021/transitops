@@ -66,7 +66,7 @@ def start_server():
     except ImportError:
         pass
 
-    print("--- Starting Znova Backend Server ---")
+    print("--- Starting TransitOps Backend Server ---")
     print(f"Using python: {sys.executable}")
     
     # Run migrations first

@@ -2,6 +2,7 @@ from datetime import datetime
 from backend.core.znova_model import ZnovaModel
 from backend.core import fields, api
 from backend.core.exceptions import ValidationError
+from backend.models.transitops_common import get_action_role_name
 import re
 import logging
 
@@ -17,9 +18,11 @@ class User(ZnovaModel):
     
     # Core fields
     full_name = fields.Char(label="Full Name", required=True, size=100, tracking=True)
-    email = fields.Char(label="Email Address", required=True, size=100, help="User's login email address", tracking=True)
+    email = fields.Char(label="Email Address", required=True, unique=True, size=100, help="User's login email address", tracking=True)
     hashed_password = fields.Char(label="Password", required=True, size=200, invisible="[('id', '!=', False)]", tracking=True)
     is_active = fields.Boolean(label="Active", default=True, help="Whether the user account is active", tracking=True)
+    failed_login_attempts = fields.Integer(label="Failed Login Attempts", default=0, readonly=True, tracking=True)
+    locked_until = fields.DateTime(label="Locked Until", readonly=True, tracking=True)
     
     # Relations
     role_id = fields.Many2one("role", label="Role", required=True, help="User's role determines their permissions", tracking=True)
@@ -53,13 +56,34 @@ class User(ZnovaModel):
             "delete": True,
             "domain": []  # Can manage all users
         },
-        "user": {
+        "fleet_manager": {
             "create": False,
             "read": True,
-            "write": True,
+            "write": False,
             "delete": False,
-            "domain": [("id", "=", "user.id")]  # Only their own record
-        }
+            "domain": [("id", "=", "user.id")]
+        },
+        "driver": {
+            "create": False,
+            "read": True,
+            "write": False,
+            "delete": False,
+            "domain": [("id", "=", "user.id")]
+        },
+        "safety_officer": {
+            "create": False,
+            "read": True,
+            "write": False,
+            "delete": False,
+            "domain": [("id", "=", "user.id")]
+        },
+        "financial_analyst": {
+            "create": False,
+            "read": True,
+            "write": False,
+            "delete": False,
+            "domain": [("id", "=", "user.id")]
+        },
     }
 
     _search_config = {
@@ -115,7 +139,7 @@ class User(ZnovaModel):
                 },
                 {
                     "title": "User Information",
-                    "fields": ["email", "is_active"]
+                    "fields": ["email", "is_active", "failed_login_attempts", "locked_until"]
                 },
                 {
                     "title": "Access Control",
@@ -149,6 +173,13 @@ class User(ZnovaModel):
                     "label": "Toggle Active Status",
                     "type": "secondary", 
                     "method": "action_toggle_active"
+                },
+                {
+                    "name": "unlock_account",
+                    "label": "Unlock Account",
+                    "type": "primary",
+                    "method": "action_unlock_account",
+                    "invisible": "[('locked_until', '=', False)]"
                 }
             ]
         },
@@ -196,8 +227,15 @@ class User(ZnovaModel):
             }
         }
 
+    def _assert_admin(self):
+        role_name = get_action_role_name(self)
+        if role_name != "admin":
+            from backend.core.exceptions import UserError
+            raise UserError("Only Admin can perform this action.")
+
     def action_toggle_active(self):
         """Action to toggle user active status"""
+        self._assert_admin()
         self.is_active = not self.is_active
         status = "activated" if self.is_active else "deactivated"
         return {
@@ -211,11 +249,26 @@ class User(ZnovaModel):
             }
         }
 
+    def action_unlock_account(self):
+        """Admin action to clear login lockout fields."""
+        self._assert_admin()
+        self.write({"failed_login_attempts": 0, "locked_until": None})
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Account Unlocked",
+                "message": f"User {self.full_name} can sign in again.",
+                "type": "success",
+                "refresh": True
+            }
+        }
+
     @property
     def role_display(self):
         """Display role information"""
         if self.role:
-            return f"{self.role.name} - {self.role.description}"
+            return f"{self.role.display_name} - {self.role.description}"
         return "No role assigned"
 
     def update_last_login(self):
@@ -259,9 +312,12 @@ class User(ZnovaModel):
         
         if not re.search(r'\d', password):
             raise ValidationError("Password must contain at least one number")
+
+        if not re.search(r'[^A-Za-z0-9]', password):
+            raise ValidationError("Password must contain at least one special character")
     
     @classmethod
-    def create(cls, db, vals: dict):
+    def create(cls, db, vals: dict, **kwargs):
         """Override create to add password validation"""
         # Validate password if provided
         if 'hashed_password' in vals and vals['hashed_password']:
@@ -274,7 +330,7 @@ class User(ZnovaModel):
                 # Hash the password
                 from backend.services.auth_service import get_password_hash
                 vals['hashed_password'] = get_password_hash(pwd)
-        return super().create(db, vals)
+        return super().create(db, vals, **kwargs)
 
     @classmethod
     def check_pending_notifications(cls, db):

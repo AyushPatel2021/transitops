@@ -19,13 +19,6 @@ class PasswordResetToken(ZnovaModel):
             "write": True,
             "delete": True,
             "domain": []
-        },
-        "user": {
-            "create": False,
-            "read": False,
-            "write": False,
-            "delete": False,
-            "domain": []
         }
     }
 

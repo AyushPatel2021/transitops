@@ -66,7 +66,8 @@ def get_profile(current_user: User = Depends(get_current_user_from_jwt), db: Ses
             "is_active": current_user.is_active,
             "role": {
                 "id": current_user.role.id if current_user.role else None,
-                "name": current_user.role.name if current_user.role else "No Role",
+                "name": current_user.role.name if current_user.role else "unassigned",
+                "label": current_user.role.display_name if current_user.role else "Unassigned",
                 "description": current_user.role.description if current_user.role else "",
                 "permissions": permissions
             },

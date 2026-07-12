@@ -1,5 +1,5 @@
 {
-    "name": "enterprise-metadata-frontend",
+    "name": "transitops-frontend",
     "private": true,
     "version": "0.0.0",
     "type": "module",

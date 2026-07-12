@@ -45,6 +45,17 @@ export interface UserData {
   updated_at?: string;
 }
 
+export interface SignupPayload {
+  email: string;
+  password: string;
+  full_name: string;
+  role: 'fleet_manager' | 'driver' | 'safety_officer' | 'financial_analyst';
+  contact_number?: string;
+  license_number?: string;
+  license_category?: 'LMV' | 'HMV' | 'Heavy Truck' | 'Trailer';
+  license_expiry_date?: string;
+}
+
 // JWT Claims interface
 export interface JWTClaims {
   sub: string;           // User email
@@ -172,7 +183,7 @@ export const useUserStore = defineStore('user', () => {
           full_name: user.full_name || '',
           role: {
             name: claims.role,
-            label: claims.role,
+            label: user.role?.label || claims.role,
             permissions: claims.permissions
           },
           preferences: claims.preferences,
@@ -190,8 +201,8 @@ export const useUserStore = defineStore('user', () => {
           email: user.email,
           full_name: user.full_name,
           role: {
-            name: user.role?.name || 'user',
-            label: user.role?.label || 'User',
+            name: user.role?.name || 'unassigned',
+            label: user.role?.label || 'Unassigned',
             permissions: user.role?.permissions || []
           },
           preferences: {
@@ -225,7 +236,7 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function signup(email: string, password: string, fullName: string): Promise<void> {
+  async function signup(payload: SignupPayload): Promise<void> {
     isLoading.value = true;
     syncError.value = null;
 
@@ -233,11 +244,7 @@ export const useUserStore = defineStore('user', () => {
       // Perform security validation before signup
       await securityService.performAudit();
       
-      const response = await api.post('/auth/signup', {
-        email: email,
-        password: password,
-        full_name: fullName
-      });
+      const response = await api.post('/auth/signup', payload);
 
       const { access_token, user } = response.data;
       
@@ -262,7 +269,7 @@ export const useUserStore = defineStore('user', () => {
             full_name: user.full_name || '',
             role: {
               name: claims.role,
-              label: claims.role,
+              label: user.role?.label || claims.role,
               permissions: claims.permissions
             },
             preferences: claims.preferences,
@@ -280,8 +287,8 @@ export const useUserStore = defineStore('user', () => {
             email: user.email,
             full_name: user.full_name,
             role: {
-              name: user.role?.name || 'user',
-              label: user.role?.label || 'User',
+              name: user.role?.name || 'unassigned',
+              label: user.role?.label || 'Unassigned',
               permissions: user.role?.permissions || []
             },
             preferences: {
@@ -449,6 +456,11 @@ export const useUserStore = defineStore('user', () => {
             ...userData.value.preferences,
             ...profileData.preferences
           },
+          role: {
+            name: profileData.role?.name || userData.value.role?.name || 'unassigned',
+            label: profileData.role?.label || userData.value.role?.label || profileData.role?.name || 'Unassigned',
+            permissions: profileData.role?.permissions || userData.value.role?.permissions || []
+          },
           last_login_at: profileData.last_login_at,
           updated_at: profileData.updated_at
         };
@@ -487,8 +499,8 @@ export const useUserStore = defineStore('user', () => {
             email: profileData.email,
             full_name: profileData.full_name,
             role: {
-              name: profileData.role?.name || 'user',
-              label: profileData.role?.label || 'User',
+              name: profileData.role?.name || 'unassigned',
+              label: profileData.role?.label || 'Unassigned',
               permissions: profileData.role?.permissions || []
             },
             preferences: {
@@ -574,7 +586,7 @@ export const useUserStore = defineStore('user', () => {
       if (claims && userData.value) {
         userData.value.role = {
           name: claims.role,
-          label: claims.role,
+          label: userData.value.role?.label || claims.role,
           permissions: claims.permissions
         };
         userData.value.preferences = claims.preferences;

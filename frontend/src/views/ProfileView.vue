@@ -35,7 +35,7 @@
             
             <div class="profile-header-info">
               <h1 class="profile-name">{{ profileData?.full_name || 'Loading...' }}</h1>
-              <p class="profile-subtitle">{{ profileData?.role?.name || 'No Role' }}</p>
+              <p class="profile-subtitle">{{ profileData?.role?.label || 'No Role' }}</p>
             </div>
           </div>
           
@@ -112,7 +112,7 @@
             <div class="card-content">
               <div class="info-row">
                 <span class="info-label">Role</span>
-                <span class="info-value-badge badge-primary">{{ profileData?.role?.name || 'No Role' }}</span>
+                <span class="info-value-badge badge-primary">{{ profileData?.role?.label || 'No Role' }}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Status</span>

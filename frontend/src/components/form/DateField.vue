@@ -274,4 +274,76 @@ const handleUpdate = (value: any) => {
         }
     }
 }
+
+[data-theme="dark"] {
+    .p-datepicker-panel,
+    .custom-prime-datepicker-panel {
+        background: #161b22 !important;
+        border-color: #30363d !important;
+        color: #e6edf3 !important;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+
+        .p-datepicker-header,
+        .p-datepicker-month,
+        .p-datepicker-year,
+        .p-datepicker-weekday,
+        .p-datepicker-day,
+        .p-datepicker-decade,
+        .p-datepicker-yearpicker,
+        .p-datepicker-monthpicker {
+            color: #e6edf3 !important;
+            background: transparent !important;
+        }
+
+        .p-datepicker-day:not(.p-disabled):hover,
+        .p-datepicker-month:not(.p-disabled):hover,
+        .p-datepicker-year:not(.p-disabled):hover,
+        .p-datepicker-header button:hover {
+            background: #1c2128 !important;
+            color: #ffffff !important;
+        }
+
+        .p-datepicker-day.p-datepicker-day-selected,
+        .p-datepicker-day-selected {
+            background: v.$primary-color !important;
+            color: v.$white !important;
+        }
+
+        .p-datepicker-other-month .p-datepicker-day {
+            color: #7d8590 !important;
+        }
+
+        .p-datepicker-footer,
+        .p-datepicker-buttonbar,
+        .custom-buttonbar {
+            background: #161b22 !important;
+            border-color: #30363d !important;
+        }
+
+        .custom-buttonbar .p-button,
+        .p-datepicker-buttonbar .p-button {
+            background: transparent !important;
+        }
+
+        .custom-buttonbar .p-button-text,
+        .p-datepicker-buttonbar .p-button-text {
+            color: #58a6ff !important;
+
+            &:hover {
+                background: #1c2128 !important;
+                color: #79c0ff !important;
+            }
+        }
+
+        .custom-buttonbar .p-button-secondary,
+        .p-datepicker-buttonbar .p-button-secondary {
+            color: #9ba6b2 !important;
+
+            &:hover {
+                background: #1c2128 !important;
+                color: #e6edf3 !important;
+            }
+        }
+    }
+}
 </style>

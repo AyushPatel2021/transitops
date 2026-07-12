@@ -12,6 +12,7 @@
 
 import { computed } from 'vue';
 import { useUserStore } from '../stores/userStore';
+import type { SignupPayload } from '../stores/userStore';
 
 export function useAuth() {
     const userStore = useUserStore();
@@ -43,8 +44,8 @@ export function useAuth() {
         await userStore.loginReactive(email, password);
     };
 
-    const signup = async (email: string, password: string, fullName: string) => {
-        await userStore.signup(email, password, fullName);
+    const signup = async (payload: SignupPayload) => {
+        await userStore.signup(payload);
     };
     
     const logout = async () => {

@@ -1,318 +1,337 @@
-# Znova - Enterprise Web Application Framework
+# TransitOps
 
-A comprehensive, production-ready web application framework inspired by enterprise standards, built with FastAPI (Python) and Vue.js (TypeScript). This framework provides an enterprise-grade foundation for building scalable web applications with minimal boilerplate code.
+TransitOps is a smart transport operations workspace built with FastAPI, Vue 3, TypeScript, PostgreSQL, and a metadata-driven Python model layer. It is designed for fleet teams that need role-aware workflows for vehicles, drivers, regions, trips, maintenance, fuel, expenses, users, and operational reporting.
 
-## 🚀 Quick Start
+The application follows an Odoo-style module design: Python models define fields, form/list metadata, access rules, menus, constraints, and lifecycle actions, while the frontend renders CRUD screens from that metadata.
 
-### Prerequisites
+## Current Status
 
-- Python 3.8+
-- Node.js 16+
-- PostgreSQL 12+
+Implemented:
 
-### Local Development Setup
+- TransitOps branding, favicon, landing page, dashboard shell, sidebar, dark mode support, and role-aware menus.
+- Authentication with email/password, Google OAuth signup/login path, JWT sessions, profile page, and login lockout.
+- Signup role selection for operational roles only: Fleet Manager, Driver, Safety Officer, Financial Analyst.
+- Admin role seeded manually and not self-selectable.
+- Role display names so users see friendly names instead of technical role codes.
+- Region, Vehicle, Driver, Trip, Maintenance Log, Fuel Log, and Expense model files split by model type.
+- Region seed data and base operational role seed data.
+- Phase 2 master data models with CRUD metadata, selections, uniqueness constraints, and tests.
 
-#### 1. Clone and Configure
+Planned by the module spec:
+
+- Trip dispatch engine with server-side dispatch, complete, cancel, capacity, double-booking, driver eligibility, and vehicle eligibility rules.
+- Maintenance workflow that moves vehicles into and out of shop status.
+- Fuel and expense cost rollups.
+- Dashboard KPIs and filters.
+- Fuel Efficiency, Fleet Utilization, Operational Cost, and ROI reports with CSV export.
+- Demo data for a full workflow.
+
+## Features
+
+### Roles
+
+TransitOps uses role-based access throughout the API and UI.
+
+| Role | Code | Purpose |
+| --- | --- | --- |
+| Admin | `admin` | Full system setup, users, roles, unlocks, and override access |
+| Fleet Manager | `fleet_manager` | Vehicles, regions, maintenance, trips, and fleet operations |
+| Driver | `driver` | Own trips and assigned trips |
+| Safety Officer | `safety_officer` | Driver compliance, license validity, and safety scoring |
+| Financial Analyst | `financial_analyst` | Fuel logs, expenses, and financial reports |
+
+Only operational roles are selectable during signup. Admin is created through seed data or manual setup.
+
+### Authentication
+
+- Email/password login.
+- Google OAuth login and signup.
+- Signup role selection.
+- Password confirmation and password strength checks.
+- Failed login tracking with account lockout after repeated failures.
+- Admin unlock support.
+- JWT access and refresh token flow.
+- User profile and preference UI.
+
+### Fleet Master Data
+
+- Regions: seeded operating zones such as North, South, East, West, and Central.
+- Vehicles: registration number, model, type, load capacity, odometer, acquisition cost, status, and region.
+- Drivers: linked user, license data, contact number, safety score, status, and region.
+
+### Trips
+
+The spec defines a trip lifecycle:
+
+```text
+draft -> dispatched -> completed
+draft -> dispatched -> cancelled
+draft -> cancelled
+```
+
+The planned trip engine validates capacity, driver availability, license validity, vehicle availability, double-booking, status transitions, odometer updates, and automatic fuel-log creation on completion.
+
+### Maintenance And Finance
+
+The spec includes:
+
+- Maintenance logs with active/closed status and vehicle shop-state automation.
+- Fuel logs linked to vehicles and optionally trips.
+- Expenses by vehicle and expense type.
+- Cost rollups for operational reports.
+
+### Reports
+
+Planned reports:
+
+- Fuel Efficiency: distance divided by fuel liters per vehicle.
+- Fleet Utilization: active/on-trip vehicle utilization.
+- Operational Cost: fuel plus maintenance costs per vehicle.
+- ROI: revenue minus operating cost divided by acquisition cost.
+
+### Framework Capabilities
+
+- Metadata-driven CRUD APIs.
+- Metadata-driven list and form views.
+- Role-aware menu rendering.
+- Access-control middleware.
+- Field definitions inspired by Odoo-style model metadata.
+- PostgreSQL migrations through Alembic.
+- WebSocket notification infrastructure.
+- Dark and light UI support.
+
+## Tech Stack
+
+Backend:
+
+- Python
+- FastAPI
+- PostgreSQL
+- Alembic
+- JWT authentication
+- Custom metadata ORM/model framework
+
+Frontend:
+
+- Vue 3
+- TypeScript
+- Vite
+- Pinia
+- Vue Router
+- Lucide icons
+
+## Prerequisites
+
+- Python 3.10 or newer
+- Node.js 18 or newer
+- PostgreSQL 12 or newer
+- npm
+
+## Environment Setup
+
+Create the environment file from the example:
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd znova
-
-# Copy environment file
 cp .env.example .env
-# Edit .env with your database credentials
 ```
 
-#### 2. Database Setup
+Default database settings in `.env.example`:
 
-```bash
-# Create PostgreSQL database
-createdb enterprise_db
-
-# Or using psql
-psql -U postgres
-CREATE DATABASE enterprise_db;
-\q
+```env
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=password
+POSTGRES_DB=enterprise_db
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+DATABASE_URL=postgresql://admin:password@localhost:5432/enterprise_db
 ```
 
-#### 3. Backend Setup
+Create the local database if it does not exist:
 
 ```bash
-# Create virtual environment
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r ../requirements.txt
+createdb -U admin enterprise_db
 ```
 
-#### 4. Frontend Setup
+Optional Google OAuth settings:
 
-```bash
-# Install frontend dependencies
-cd frontend
-npm install
-cd ..
+```env
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
 ```
 
-### Starting the Application
+## Install
 
-#### Option 1: Quick Start (Recommended for Development)
+Install Python dependencies:
 
 ```bash
-# From project root - starts backend with auto-migration
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Install frontend dependencies:
+
+```bash
+npm --prefix frontend install
+```
+
+## Start Development
+
+Start the backend on port `8000`:
+
+```bash
 python run.py
 ```
 
-This will:
-- Check and create migrations if needed
-- Apply database migrations
-- Seed initial data (admin user, roles)
-- Start the backend server on http://localhost:8000
+`run.py` handles migrations, initial seed data, and starts the FastAPI server.
 
-In a separate terminal:
+Start the frontend in another terminal:
+
 ```bash
-# Start frontend
-cd frontend
-npm run dev
+npm --prefix frontend run dev
 ```
 
-Frontend will be available at http://localhost:5173
+Default URLs:
 
-#### Option 2: Fresh Database Setup
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API docs: http://localhost:8000/docs
+
+## Fresh Database Setup
+
+To rebuild the local database from scratch:
 
 ```bash
-# Drops existing database, recreates it, and starts server
 python setup_fresh.py
+```
 
-# With demo data
+To rebuild and load demo data:
+
+```bash
 python setup_fresh.py --demo
 ```
 
-This will:
-- Drop and recreate the database
-- Clean old migration files
-- Create fresh initial migration
-- Apply migrations
-- Seed initial data
-- Start the backend server
+Use this only when it is acceptable to drop local data.
 
-#### Option 3: Manual Start
+## Default Access
+
+Seeded admin account:
+
+```text
+Email: admin@example.com
+Password: admin123
+```
+
+Operational users should normally be created through signup or by an admin.
+
+## Useful Commands
+
+Backend syntax check:
 
 ```bash
-# Terminal 1 - Backend
-cd backend
-source venv/bin/activate
-uvicorn main:app --reload --port 8000
-
-# Terminal 2 - Frontend
-cd frontend
-npm run dev
+python -m py_compile backend/data/menus.py
 ```
 
-### Default Access
-
-- **Admin**: admin@example.com / admin123
-- **User**: user@example.com / user123
-- **API Docs**: http://localhost:8000/docs
-- **Frontend**: http://localhost:5173
-
-## 🏭 Production Deployment
-
-### Environment Configuration
+Backend tests:
 
 ```bash
-# Update .env for production
-ENVIRONMENT=production
-DEBUG=False
-DATABASE_URL=postgresql://user:password@host:5432/dbname
-SECRET_KEY=<generate-strong-secret-key>
+pytest backend/tests
 ```
 
-### Option 1: Docker Deployment
+Frontend build:
 
 ```bash
-# Build and start services
-docker-compose -f deploy/docker-compose.production.yml up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
+npm --prefix frontend run build
 ```
 
-### Option 2: Manual Production Deployment
-
-#### Backend
+Frontend development server:
 
 ```bash
-# Install production dependencies
-pip install -r requirements.txt gunicorn
-
-# Run migrations
-cd backend
-alembic upgrade head
-
-# Start with Gunicorn
-gunicorn backend.main:app \
-  --workers 4 \
-  --worker-class uvicorn.workers.UvicornWorker \
-  --bind 0.0.0.0:8000 \
-  --access-logfile - \
-  --error-logfile -
+npm --prefix frontend run dev
 ```
 
-#### Frontend
+## Project Structure
 
-```bash
-# Build for production
-cd frontend
-npm run build
-
-# Serve with nginx (example config in deploy/nginx.prod.conf)
-# Copy dist/ to nginx web root
-sudo cp -r dist/* /var/www/html/
-```
-
-### Production Checklist
-
-- [ ] Set strong SECRET_KEY in .env
-- [ ] Configure proper DATABASE_URL
-- [ ] Set ENVIRONMENT=production
-- [ ] Disable DEBUG mode
-- [ ] Configure CORS for your domain
-- [ ] Set up SSL/TLS certificates
-- [ ] Configure firewall rules
-- [ ] Set up database backups
-- [ ] Configure logging and monitoring
-- [ ] Review security settings
-
-## 🎨 Framework Features
-
-### Model System
-- Automatic CRUD with Odoo-style field definitions
-- UI auto-generated from metadata with built-in dark mode support
-- Advanced search with tag-based filtering
-
-### Real-Time Engine
-- WebSocket-driven notifications
-- Live data synchronization
-
-### Enterprise Features
-- Sequence System: Auto-numbering for business records
-- Cron Manager: Scheduled tasks and background processes
-- Secure Auth: JWT-based with Role-Based Access Control (RBAC)
-- Image handling: Upload and processing with automatic UI integration
-
-## 📁 Project Structure
-
-```
-znova/
-├── backend/                    # FastAPI Backend
-│   ├── api/                   # API endpoints
-│   ├── core/                  # Framework core
-│   ├── models/                # Application models
-│   ├── services/              # Business logic
-│   ├── data/                  # Initial data and menus
-│   ├── migrations/            # Database migrations
-│   └── scripts/               # Utility scripts
-├── frontend/                  # Vue.js Frontend
+```text
+transitops/
+├── backend/
+│   ├── api/                 # FastAPI endpoints
+│   ├── core/                # Model framework, fields, database, ACL, policies
+│   ├── data/                # Menus and seed data
+│   ├── demo/                # Demo data helpers
+│   ├── migrations/          # Alembic migrations
+│   ├── models/              # One model type per file
+│   ├── services/            # Auth and integration services
+│   └── tests/               # Backend tests
+├── frontend/
 │   ├── src/
-│   │   ├── components/        # Reusable components
-│   │   ├── views/             # Page components
-│   │   ├── stores/            # Pinia state management
-│   │   └── core/              # Core utilities
+│   │   ├── assets/          # TransitOps logo and static assets
+│   │   ├── components/      # Shared Vue components
+│   │   ├── core/            # API and auth helpers
+│   │   ├── stores/          # Pinia stores
+│   │   └── views/           # Page views
 │   └── package.json
-├── deploy/                    # Deployment configs
-├── run.py                     # Development startup script
-├── setup_fresh.py             # Fresh database setup script
-└── requirements.txt           # Python dependencies
+├── TransitOps_Module_Spec.md
+├── run.py
+├── setup_fresh.py
+├── requirements.txt
+└── README.md
 ```
 
-## 🔧 Core Concepts
+## Model Files
 
-### Model Definition
+TransitOps keeps each business model in its own file:
 
-```python
-from backend.core.base_model import BaseModel
-from backend.core import fields
+- `backend/models/region.py`
+- `backend/models/driver.py`
+- `backend/models/vehicle.py`
+- `backend/models/trip.py`
+- `backend/models/maintenance_log.py`
+- `backend/models/fuel_log.py`
+- `backend/models/expense.py`
+- `backend/models/role.py`
+- `backend/models/user.py`
 
-class Equipment(BaseModel):
-    __tablename__ = "equipment"
+Shared TransitOps constants and helpers live in `backend/models/transitops_common.py`.
 
-    name = fields.Char(label="Equipment Name", required=True)
-    status = fields.Selection([
-        ('active', 'Active'),
-        ('maintenance', 'Under Maintenance')
-    ], label="Status", default="active")
-    category_id = fields.Many2one("category", label="Category")
-    requests = fields.One2many("request", "equipment_id", label="Requests")
-```
+## Menu Map
 
-### Automatic API Generation
+| Section | Menu | Roles |
+| --- | --- | --- |
+| Main | Dashboard | All roles |
+| Fleet | Vehicles | All roles, access scoped by policy |
+| Fleet | Regions | Admin, Fleet Manager |
+| Drivers | Driver Directory | Admin, Fleet Manager, Safety Officer |
+| Trips | Trip Board | Admin, Fleet Manager |
+| Trips | My Trips | Driver |
+| Maintenance | Maintenance Log | Admin, Fleet Manager |
+| Finance | Fuel Logs | Admin, Fleet Manager, Financial Analyst |
+| Finance | Expenses | Admin, Fleet Manager, Financial Analyst |
+| Reports | Fuel Efficiency, Fleet Utilization, Operational Cost, ROI | Admin, Fleet Manager, Financial Analyst |
+| Settings | Users | Admin |
 
-The framework automatically generates REST endpoints:
+## Development Notes
 
-- `GET /api/v1/models/equipment` - List records
-- `POST /api/v1/models/equipment` - Create record
-- `GET /api/v1/models/equipment/{id}` - Get record
-- `PUT /api/v1/models/equipment/{id}` - Update record
-- `DELETE /api/v1/models/equipment/{id}` - Delete record
+- Keep one model type per file.
+- Use the framework model and field APIs instead of direct database/session logic inside models.
+- Enforce business rules on the backend, not only through frontend domains or disabled controls.
+- Keep role display names user-facing; keep technical role codes internal.
+- Update `TransitOps_Module_Spec.md` phase status only when the phase scope is fully implemented and tested.
 
-## 🛠️ Tech Stack
+## Production Checklist
 
-**Backend:**
-- FastAPI - Modern Python web framework
-- SQLAlchemy - Database ORM
-- PostgreSQL - Primary database
-- Alembic - Database migrations
-- JWT - Authentication tokens
+- Set a strong `SECRET_KEY`.
+- Set `ENVIRONMENT=production`.
+- Disable debug mode.
+- Use production PostgreSQL credentials.
+- Configure CORS for the production frontend domain.
+- Configure HTTPS at the proxy/load balancer.
+- Run migrations before serving traffic.
+- Build and serve `frontend/dist`.
+- Set up database backups.
+- Review seeded admin credentials.
 
-**Frontend:**
-- Vue.js 3 - Progressive JavaScript framework
-- TypeScript - Type-safe JavaScript
-- Pinia - State management
-- PrimeVue - UI component library
-- Vite - Fast build tool
+## License
 
-## 📚 Documentation
-
-- **[Development Guide](DEVELOPMENT.md)** - Complete framework documentation
-
-## 🔑 Key Features
-
-### Security
-- JWT-based authentication
-- Role-based access control
-- Server-side validation
-- CORS protection
-- SQL injection prevention
-
-### Performance
-- Database connection pooling
-- Automatic query optimization
-- Lazy loading relationships
-- Efficient WebSocket handling
-- Static file optimization
-
-### Developer Experience
-- Automatic API generation
-- Hot reload development
-- Type safety with TypeScript
-- Comprehensive error handling
-- Built-in testing framework
-
-## 📖 Getting Started
-
-1. Follow the Quick Start guide above
-2. Read the [Development Guide](DEVELOPMENT.md)
-3. Explore existing models in `backend/models/`
-4. Build your first model following the patterns
-5. Deploy using the production guide
-
----
-
-**Znova** - Building enterprise applications, simplified.
+Internal project unless a license is added.

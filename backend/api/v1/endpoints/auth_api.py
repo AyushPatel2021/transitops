@@ -3,12 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from datetime import timedelta, datetime
+from datetime import date, timedelta, datetime
 from backend.core.base_model import Environment
 from backend.core.registry import registry
 from backend.core.database import get_db
 from backend.models.user import User
-from backend.models.role import Role
 from backend.models.password_reset_token import PasswordResetToken
 from backend.services.auth_service import (
     verify_password, 
@@ -33,6 +32,15 @@ import time
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+SIGNUP_ROLES = {
+    "fleet_manager",
+    "driver",
+    "safety_officer",
+    "financial_analyst",
+}
+
+LICENSE_CATEGORIES = {"LMV", "HMV", "Heavy Truck", "Trailer"}
+
 # Rate limiting storage (in production, use Redis)
 login_attempts = defaultdict(list)
 MAX_LOGIN_ATTEMPTS = 5
@@ -42,6 +50,11 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+    role: str
+    contact_number: Optional[str] = None
+    license_number: Optional[str] = None
+    license_category: Optional[str] = None
+    license_expiry_date: Optional[date] = None
     
     @validator('password')
     def validate_password(cls, v):
@@ -51,6 +64,8 @@ class SignupRequest(BaseModel):
             raise ValueError('Password must contain at least one letter')
         if not re.search(r'\d', v):
             raise ValueError('Password must contain at least one number')
+        if not re.search(r'[^A-Za-z0-9]', v):
+            raise ValueError('Password must contain at least one special character')
         return v
     
     @validator('full_name')
@@ -58,6 +73,36 @@ class SignupRequest(BaseModel):
         if len(v.strip()) < 2:
             raise ValueError('Full name must be at least 2 characters long')
         return v.strip()
+
+    @validator('role')
+    def validate_signup_role(cls, v):
+        role = v.strip()
+        if role not in SIGNUP_ROLES:
+            raise ValueError('Selected role is not available for sign up')
+        return role
+
+    @validator('contact_number')
+    def validate_contact_number(cls, v):
+        if v is None:
+            return v
+        cleaned = v.strip()
+        return cleaned or None
+
+    @validator('license_number')
+    def validate_license_number(cls, v):
+        if v is None:
+            return v
+        cleaned = v.strip()
+        return cleaned or None
+
+    @validator('license_category')
+    def validate_license_category(cls, v):
+        if v is None:
+            return v
+        category = v.strip()
+        if category not in LICENSE_CATEGORIES:
+            raise ValueError('Selected license category is not supported')
+        return category
 
 class AdminResetPasswordRequest(BaseModel):
     user_id: int
@@ -72,6 +117,8 @@ class AdminResetPasswordRequest(BaseModel):
             raise ValueError('Password must contain at least one letter')
         if not re.search(r'\d', v):
             raise ValueError('Password must contain at least one number')
+        if not re.search(r'[^A-Za-z0-9]', v):
+            raise ValueError('Password must contain at least one special character')
         return v
     
     @validator('confirm_password')
@@ -99,11 +146,36 @@ class ResetPasswordRequest(BaseModel):
             raise ValueError('Password must contain at least one letter')
         if not re.search(r'\d', v):
             raise ValueError('Password must contain at least one number')
+        if not re.search(r'[^A-Za-z0-9]', v):
+            raise ValueError('Password must contain at least one special character')
         return v
 
 class GoogleAuthRequest(BaseModel):
     code: str
     state: str
+    role: Optional[str] = None
+    contact_number: Optional[str] = None
+    license_number: Optional[str] = None
+    license_category: Optional[str] = None
+    license_expiry_date: Optional[date] = None
+
+    @validator('role')
+    def validate_google_signup_role(cls, v):
+        if v is None:
+            return v
+        role = v.strip()
+        if role not in SIGNUP_ROLES:
+            raise ValueError('Selected role is not available for sign up')
+        return role
+
+    @validator('license_category')
+    def validate_google_license_category(cls, v):
+        if v is None:
+            return v
+        category = v.strip()
+        if category not in LICENSE_CATEGORIES:
+            raise ValueError('Selected license category is not supported')
+        return category
 
 def check_rate_limit(ip_address: str) -> bool:
     """Check if IP is rate limited"""
@@ -127,6 +199,42 @@ def get_client_ip(request: Request) -> str:
         return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
+def _format_lockout_message(locked_until: datetime) -> str:
+    remaining = max(0, int((locked_until - datetime.utcnow()).total_seconds()))
+    minutes = max(1, (remaining + 59) // 60)
+    return f"Account locked due to multiple failed attempts. Try again after {minutes} minutes."
+
+def _record_account_login_failure(user):
+    attempts = (user.failed_login_attempts or 0) + 1
+    vals = {"failed_login_attempts": attempts}
+    if attempts >= MAX_LOGIN_ATTEMPTS:
+        vals["locked_until"] = datetime.utcnow() + timedelta(seconds=LOCKOUT_DURATION)
+    user.write(vals)
+
+def _assert_supported_role(user):
+    role_name = user.role.name if user and user.role else None
+    if role_name == "user" or not role_name:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account needs a TransitOps role before it can sign in. Please contact an administrator."
+        )
+
+def _user_response_role(user):
+    role_name = user.role.name if user and user.role else "unassigned"
+    role_label = user.role.display_name if user and user.role and user.role.display_name else role_name
+    return {"name": role_name, "label": role_label}
+
+def _validate_driver_signup_details(request):
+    missing_driver_fields = []
+    for field_name in ("contact_number", "license_number", "license_category", "license_expiry_date"):
+        if not getattr(request, field_name):
+            missing_driver_fields.append(field_name)
+    if missing_driver_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Driver sign up requires: {', '.join(missing_driver_fields)}"
+        )
+
 @router.post("/signup")
 def signup(request: SignupRequest, client_request: Request, db: Session = Depends(get_db)):
     client_ip = get_client_ip(client_request)
@@ -148,23 +256,39 @@ def signup(request: SignupRequest, client_request: Request, db: Session = Depend
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email address already exists"
         )
-    
-    # Get or create user role
-    user_role = env['role'].search([('name', '=', 'user')], limit=1)
-    if not user_role:
-        user_role = Role(name="user", description="Normal User")
-        db.add(user_role)
-        db.flush()
 
+    signup_role = env['role'].search([('name', '=', request.role)], limit=1)
+    if not signup_role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Selected role is not configured. Please contact an administrator."
+        )
+
+    if request.role == "driver":
+        _validate_driver_signup_details(request)
+
+    new_user = None
     try:
         # Create new user
         new_user = User.create(db, {
             'email': request.email,
             'full_name': request.full_name,
             'hashed_password': get_password_hash(request.password),
-            'role_id': user_role.id,
+            'role_id': signup_role.id,
             'is_active': True
         })
+
+        linked_driver = None
+        if request.role == "driver":
+            linked_driver = env['driver'].create({
+                'user_id': new_user.id,
+                'name': new_user.full_name,
+                'license_number': request.license_number,
+                'license_category': request.license_category,
+                'license_expiry_date': request.license_expiry_date,
+                'contact_number': request.contact_number,
+                'status': 'available',
+            })._records[0]
         
         # Update last login time
         new_user.update_last_login()
@@ -180,18 +304,24 @@ def signup(request: SignupRequest, client_request: Request, db: Session = Depend
                 "id": new_user.id,
                 "email": new_user.email,
                 "full_name": new_user.full_name,
-                "role": {
-                    "name": new_user.role.name if new_user.role else "user",
-                    "label": new_user.role.name if new_user.role else "user"
-                },
+                "role": _user_response_role(new_user),
                 "is_active": new_user.is_active,
                 "image": new_user.image,
                 "show_notification_toasts": new_user.show_notification_toasts
             },
+            "driver": {
+                "id": linked_driver.id,
+                "status": linked_driver.status
+            } if linked_driver else None,
             "message": "Account created successfully!",
             "success": True
         }
     except Exception as e:
+        if new_user is not None:
+            try:
+                new_user.unlink(db)
+            except Exception:
+                logger.warning(f"Failed to clean up user after signup error: {request.email}", exc_info=True)
         db.rollback()
         logger.error(f"Signup error for {request.email}: {str(e)}")
         raise HTTPException(
@@ -224,14 +354,24 @@ def login(request: LoginRequest, client_request: Request, db: Session = Depends(
         record_failed_attempt(client_ip)
         logger.warning(f"Login failed - inactive user: {request.username} from {client_ip}")
         raise AuthenticationError("Your account has been deactivated. Please contact support.")
+
+    _assert_supported_role(user)
+
+    if user.locked_until and user.locked_until > datetime.utcnow():
+        logger.warning(f"Login blocked - locked user: {request.username} from {client_ip}")
+        raise AuthenticationError(_format_lockout_message(user.locked_until))
     
     # Verify password
     if not verify_password(request.password, user.hashed_password):
         record_failed_attempt(client_ip)
+        _record_account_login_failure(user)
         logger.warning(f"Login failed - invalid password for user: {request.username} from {client_ip}")
+        if user.locked_until and user.locked_until > datetime.utcnow():
+            raise AuthenticationError("Account locked due to multiple failed attempts. Try again after 15 minutes.")
         raise AuthenticationError("Incorrect password. Please check your password and try again.")
     
     # Update last login time
+    user.write({"failed_login_attempts": 0, "locked_until": None})
     user.update_last_login()
     
     # Create comprehensive JWT token with user claims
@@ -246,10 +386,7 @@ def login(request: LoginRequest, client_request: Request, db: Session = Depends(
             "id": user.id,
             "email": user.email,
             "full_name": user.full_name,
-            "role": {
-                "name": user.role.name if user.role else "user",
-                "label": user.role.name if user.role else "user"
-            },
+            "role": _user_response_role(user),
             "is_active": user.is_active,
             "image": user.image,
             "show_notification_toasts": user.show_notification_toasts
@@ -435,9 +572,19 @@ def google_auth_callback(request: GoogleAuthRequest, client_request: Request, db
         
         if not user:
             # Create new user
-            user_role = env['role'].search([('name', '=', 'user')], limit=1)
+            if not request.role:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Choose a TransitOps role on the sign up page before continuing with Google."
+                )
+            user_role = env['role'].search([('name', '=', request.role)], limit=1)
             if not user_role:
-                user_role = env['role'].create({'name': 'user', 'description': 'Normal User'})
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Selected role is not configured. Please contact an administrator."
+                )
+            if request.role == "driver":
+                _validate_driver_signup_details(request)
             
             # Generate a random password for Google users (they won't use it)
             random_password = secrets.token_urlsafe(32)
@@ -449,6 +596,17 @@ def google_auth_callback(request: GoogleAuthRequest, client_request: Request, db
                 'role_id': user_role.id,
                 'is_active': True
             })
+
+            if request.role == "driver":
+                env['driver'].create({
+                    'user_id': user.id,
+                    'name': user.full_name,
+                    'license_number': request.license_number,
+                    'license_category': request.license_category,
+                    'license_expiry_date': request.license_expiry_date,
+                    'contact_number': request.contact_number,
+                    'status': 'available',
+                })
             
             logger.info(f"New user created via Google OAuth: {email} from {client_ip}")
         
@@ -458,9 +616,11 @@ def google_auth_callback(request: GoogleAuthRequest, client_request: Request, db
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Your account has been deactivated. Please contact support."
             )
+
+        _assert_supported_role(user)
         
         # Update last login time
-        user.update_last_login(db)
+        user.update_last_login()
         
         # Create comprehensive JWT token with user claims
         access_token = create_comprehensive_jwt_token(user)
@@ -474,10 +634,7 @@ def google_auth_callback(request: GoogleAuthRequest, client_request: Request, db
                 "id": user.id,
                 "email": user.email,
                 "full_name": user.full_name,
-                "role": {
-                    "name": user.role.name if user.role else "user",
-                    "label": user.role.name if user.role else "user"
-                },
+                "role": _user_response_role(user),
                 "is_active": user.is_active,
                 "image": user.image,
                 "show_notification_toasts": user.show_notification_toasts
@@ -516,8 +673,7 @@ def get_profile(current_user: User = Depends(get_current_user_from_jwt), db: Ses
                 "email": current_user.email,
                 "full_name": current_user.full_name,
                 "role": {
-                    "name": current_user.role.name if current_user.role else "user",
-                    "label": current_user.role.name if current_user.role else "user",
+                    **_user_response_role(current_user),
                     "permissions": permissions
                 },
                 "is_active": current_user.is_active,

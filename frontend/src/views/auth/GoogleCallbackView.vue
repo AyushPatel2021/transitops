@@ -13,7 +13,7 @@
         <!-- Header -->
         <div class="auth-header">
           <div class="logo-wrapper">
-            <img :src="logoImage" alt="Znova" class="logo" />
+            <img :src="logoImage" alt="TransitOps" class="logo" />
           </div>
           <h1>Completing Google Sign In</h1>
           <p>Please wait while we process your authentication...</p>
@@ -46,7 +46,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuth } from '../../core/useAuth';
 import api from '../../core/api';
-import logoImage from '@/assets/znova_logo_no_bg.png';
+import logoImage from '../../assets/transitops_mark.svg';
 
 const route = useRoute();
 const router = useRouter();
@@ -75,10 +75,15 @@ onMounted(async () => {
 
     statusMessage.value = 'Exchanging authorization code...';
 
+    const storedSignupContext = localStorage.getItem('google_signup_context');
+    const signupContext = storedSignupContext ? JSON.parse(storedSignupContext) : {};
+    localStorage.removeItem('google_signup_context');
+
     // Send code to backend
     const response = await api.post('/auth/google', {
       code: code,
-      state: state
+      state: state,
+      ...signupContext
     });
 
     const { access_token, user } = response.data;

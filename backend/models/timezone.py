@@ -12,8 +12,7 @@ class Timezone(ZnovaModel):
     offset = fields.Char(label="UTC Offset", size=10, help="Current UTC offset (e.g., +05:30, -08:00)")
     
     _role_permissions = {
-        "admin": {"create": True, "read": True, "write": True, "delete": True},
-        "user": {"create": False, "read": True, "write": False, "delete": False}
+        "admin": {"create": True, "read": True, "write": True, "delete": True}
     }
 
     _ui_views = {

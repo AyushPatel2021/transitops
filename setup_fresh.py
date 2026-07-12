@@ -95,7 +95,7 @@ def create_initial_migration():
         print("⚠ Migration creation warning - will be handled by server")
 
 def start_server():
-    print("--- Starting Znova Backend Server ---")
+    print("--- Starting TransitOps Backend Server ---")
     print("Migrations and seeding will run automatically via lifespan event.")
     
     python_exe = VENV_PYTHON if os.path.exists(VENV_PYTHON) else sys.executable

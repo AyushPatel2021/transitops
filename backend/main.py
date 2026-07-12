@@ -35,7 +35,7 @@ from backend import models
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
-    logger.info("Starting Znova API...")
+    logger.info("Starting TransitOps API...")
     
     # 1. Create tables first
     try:
@@ -116,7 +116,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown logic
-    logger.info("Shutting down Znova API...")
+    logger.info("Shutting down TransitOps API...")
     
     # Stop background scheduler
     try:
@@ -127,7 +127,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error stopping background scheduler: {e}")
 
-app = FastAPI(title="Znova API", lifespan=lifespan)
+app = FastAPI(title="TransitOps API", lifespan=lifespan)
 
 # Setup enhanced error handlers
 setup_error_handlers(app)
@@ -171,7 +171,7 @@ app.include_router(notification_api.router, prefix="/api/v1", tags=["Notificatio
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to Znova API"}
+    return {"message": "Welcome to TransitOps API"}
 
 @app.get("/health/websocket")
 def websocket_health():

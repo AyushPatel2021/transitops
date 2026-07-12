@@ -313,7 +313,7 @@ def test_error_handlers_and_backend_startup_import():
     setup_error_handlers(app)
 
     assert UserError in app.exception_handlers
-    assert backend.main.app.title == "Znova API"
+    assert backend.main.app.title == "TransitOps API"
 
 
 def test_data_loader_keeps_real_user_id_field(db):

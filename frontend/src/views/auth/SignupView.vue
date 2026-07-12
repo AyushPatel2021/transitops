@@ -21,10 +21,10 @@
         <!-- Header -->
         <div class="auth-header">
           <div class="logo-wrapper">
-            <img :src="logoImage" alt="Znova" class="logo" />
+            <img :src="logoImage" alt="TransitOps" class="logo" />
           </div>
           <h1>Create your account</h1>
-          <p>Join thousands of developers building faster.</p>
+          <p>Join your transport operations workspace.</p>
         </div>
 
         <!-- Form -->
@@ -58,6 +58,83 @@
                 required
                 :disabled="loading"
               />
+            </div>
+          </div>
+
+          <!-- Role -->
+          <div class="form-group">
+            <label for="role">Role</label>
+            <div class="input-wrapper">
+              <i class="icofont-id-card"></i>
+              <select id="role" v-model="role" required :disabled="loading">
+                <option value="" disabled hidden>Select your role</option>
+                <option v-for="option in roleOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Contact Number -->
+          <div class="form-group">
+            <label for="contact-number">
+              Contact Number <span v-if="role !== 'driver'">(optional)</span>
+            </label>
+            <div class="input-wrapper">
+              <i class="icofont-phone"></i>
+              <input
+                id="contact-number"
+                v-model="contactNumber"
+                type="tel"
+                placeholder="+1 555 0100"
+                :required="role === 'driver'"
+                :disabled="loading"
+              />
+            </div>
+          </div>
+
+          <!-- Driver Profile -->
+          <div v-if="role === 'driver'" class="driver-fields">
+            <div class="form-group">
+              <label for="license-number">License Number</label>
+              <div class="input-wrapper">
+                <i class="icofont-card"></i>
+                <input
+                  id="license-number"
+                  v-model="licenseNumber"
+                  type="text"
+                  placeholder="LIC-100"
+                  required
+                  :disabled="loading"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="license-category">License Category</label>
+              <div class="input-wrapper">
+                <i class="icofont-truck-loaded"></i>
+                <select id="license-category" v-model="licenseCategory" required :disabled="loading">
+                  <option value="" disabled hidden>Select category</option>
+                  <option v-for="option in licenseCategoryOptions" :key="option" :value="option">
+                    {{ option }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="license-expiry-date">License Expiry Date</label>
+              <div class="input-wrapper">
+                <i class="icofont-calendar"></i>
+                <input
+                  id="license-expiry-date"
+                  v-model="licenseExpiryDate"
+                  type="date"
+                  required
+                  :disabled="loading"
+                />
+              </div>
             </div>
           </div>
 
@@ -103,6 +180,10 @@
               <div class="indicator" :class="{ active: hasNumber }">
                 <span class="indicator-dot"></span>
                 <span class="indicator-text">One number</span>
+              </div>
+              <div class="indicator" :class="{ active: hasSpecialChar }">
+                <span class="indicator-dot"></span>
+                <span class="indicator-text">One special char</span>
               </div>
             </div>
           </div>
@@ -195,13 +276,19 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../../core/useAuth';
 import api from '../../core/api';
-import logoImage from '@/assets/znova_logo_no_bg.png';
+import logoImage from '../../assets/transitops_mark.svg';
+import type { SignupPayload } from '../../stores/userStore';
 
 const router = useRouter();
 const { signup } = useAuth();
 
 const fullName = ref('');
 const email = ref('');
+const role = ref<SignupPayload['role'] | ''>('');
+const contactNumber = ref('');
+const licenseNumber = ref('');
+const licenseCategory = ref<SignupPayload['license_category'] | ''>('');
+const licenseExpiryDate = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const showPassword = ref(false);
@@ -209,9 +296,33 @@ const showConfirmPassword = ref(false);
 const loading = ref(false);
 const error = ref('');
 
+const roleOptions: Array<{ value: SignupPayload['role']; label: string }> = [
+  { value: 'fleet_manager', label: 'Fleet Manager' },
+  { value: 'driver', label: 'Driver' },
+  { value: 'safety_officer', label: 'Safety Officer' },
+  { value: 'financial_analyst', label: 'Financial Analyst' },
+];
+
+const licenseCategoryOptions: Array<NonNullable<SignupPayload['license_category']>> = [
+  'LMV',
+  'HMV',
+  'Heavy Truck',
+  'Trailer',
+];
+
+const isDriverProfileValid = computed(() => {
+  if (role.value !== 'driver') return true;
+  return contactNumber.value.trim() &&
+         licenseNumber.value.trim() &&
+         licenseCategory.value &&
+         licenseExpiryDate.value;
+});
+
 const isFormValid = computed(() => {
   return fullName.value.trim() &&
          email.value.trim() &&
+         role.value &&
+         isDriverProfileValid.value &&
          isPasswordValid.value &&
          password.value === confirmPassword.value;
 });
@@ -220,9 +331,10 @@ const isFormValid = computed(() => {
 const hasMinLength = computed(() => password.value.length >= 8);
 const hasLetter = computed(() => /[A-Za-z]/.test(password.value));
 const hasNumber = computed(() => /\d/.test(password.value));
+const hasSpecialChar = computed(() => /[^A-Za-z0-9]/.test(password.value));
 
 const isPasswordValid = computed(() =>
-  hasMinLength.value && hasLetter.value && hasNumber.value
+  hasMinLength.value && hasLetter.value && hasNumber.value && hasSpecialChar.value
 );
 
 const handleSignup = async () => {
@@ -235,7 +347,24 @@ const handleSignup = async () => {
   error.value = '';
 
   try {
-    const response = await signup(email.value, password.value, fullName.value);
+    const payload: SignupPayload = {
+      email: email.value,
+      password: password.value,
+      full_name: fullName.value,
+      role: role.value as SignupPayload['role'],
+    };
+
+    const trimmedContact = contactNumber.value.trim();
+    if (trimmedContact) payload.contact_number = trimmedContact;
+
+    if (role.value === 'driver') {
+      payload.contact_number = trimmedContact;
+      payload.license_number = licenseNumber.value.trim();
+      payload.license_category = licenseCategory.value as SignupPayload['license_category'];
+      payload.license_expiry_date = licenseExpiryDate.value;
+    }
+
+    await signup(payload);
     // Auto-login successful - redirect to home
     router.push('/dashboard');
   } catch (err: any) {
@@ -261,13 +390,35 @@ const handleSignup = async () => {
 };
 
 const handleGoogleSignup = async () => {
+  if (!role.value || !isDriverProfileValid.value) {
+    error.value = role.value === 'driver'
+      ? 'Please complete the driver profile before continuing with Google'
+      : 'Please select a role before continuing with Google';
+    return;
+  }
+
   loading.value = true;
   error.value = '';
 
   try {
     const response = await api.get('/auth/google');
     const { auth_url, state } = response.data;
+    const googleSignupContext: Partial<SignupPayload> = {
+      role: role.value as SignupPayload['role'],
+    };
+
+    const trimmedContact = contactNumber.value.trim();
+    if (trimmedContact) googleSignupContext.contact_number = trimmedContact;
+
+    if (role.value === 'driver') {
+      googleSignupContext.contact_number = trimmedContact;
+      googleSignupContext.license_number = licenseNumber.value.trim();
+      googleSignupContext.license_category = licenseCategory.value as SignupPayload['license_category'];
+      googleSignupContext.license_expiry_date = licenseExpiryDate.value;
+    }
+
     localStorage.setItem('google_oauth_state', state);
+    localStorage.setItem('google_signup_context', JSON.stringify(googleSignupContext));
     window.location.href = auth_url;
   } catch (err: any) {
     error.value = err.response?.data?.detail || 'Google signup failed. Please try again.';
@@ -462,7 +613,8 @@ const handleGoogleSignup = async () => {
     pointer-events: none;
   }
   
-  input {
+  input,
+  select {
     width: 100%;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -498,6 +650,42 @@ const handleGoogleSignup = async () => {
       transition: background-color 5000s ease-in-out 0s;
     }
   }
+
+  select {
+    appearance: none;
+    color-scheme: dark;
+    cursor: pointer;
+    
+    option {
+      background: #0d1117;
+      color: #e6edf3;
+    }
+
+    option:checked,
+    option:hover {
+      background: #244aa8;
+      color: #ffffff;
+    }
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .input-wrapper {
+    select {
+      color-scheme: light;
+
+      option {
+        background: #ffffff;
+        color: #111827;
+      }
+
+      option:checked,
+      option:hover {
+        background: #2563eb;
+        color: #ffffff;
+      }
+    }
+  }
 }
 
 .password-toggle {
@@ -529,9 +717,20 @@ const handleGoogleSignup = async () => {
 
 .password-indicators {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   padding-top: 0.25rem;
   margin-left: 0.25rem;
+}
+
+.driver-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 0.5rem;
 }
 
 .indicator {

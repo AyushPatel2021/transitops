@@ -1,4 +1,5 @@
 from .acl import RoleName, Permission
+from sqlalchemy.orm import object_session
 
 class PolicyEngine:
     @staticmethod
@@ -31,8 +32,26 @@ class PolicyEngine:
         # Check if model has role permissions defined
         if hasattr(model_cls, '_role_permissions'):
             role_perms = model_cls._role_permissions.get(role_name, {})
-            result = role_perms.get(action, False)
-            return result
+            if not role_perms.get(action, False):
+                return False
+            domain = role_perms.get("domain", [])
+            if record is not None and domain:
+                raw_record = record
+                if hasattr(record, "_records"):
+                    if len(record) != 1:
+                        return False
+                    raw_record = record._records[0]
+                db = object_session(raw_record)
+                if db is None and hasattr(record, "env"):
+                    db = record.env.db
+                if db is not None:
+                    query = db.query(model_cls).filter(model_cls.id == raw_record.id)
+                    env = getattr(record, "env", None)
+                    if env is None and hasattr(raw_record, "env"):
+                        env = raw_record.env
+                    query = model_cls.apply_domain_to_query(query, domain, env=env)
+                    return query.first() is not None
+            return True
         
         return False
 
@@ -53,8 +72,7 @@ class PolicyEngine:
         role_perms = model_cls._role_permissions.get(role_name, {})
         domain = role_perms.get('domain', [])
         
-        # Replace user context variables in domain
-        return PolicyEngine._resolve_domain_context(domain, user)
+        return domain
     
     @staticmethod
     def _resolve_domain_context(domain, user):
@@ -125,28 +143,9 @@ class PolicyEngine:
         if not model_cls:
             return query
             
-        for field, operator, value in domain:
-            if hasattr(model_cls, field):
-                attr = getattr(model_cls, field)
-                if operator == "=":
-                    query = query.filter(attr == value)
-                elif operator == "!=":
-                    query = query.filter(attr != value)
-                elif operator == "in":
-                    if isinstance(value, (list, tuple)):
-                        query = query.filter(attr.in_(value))
-                elif operator == ">":
-                    query = query.filter(attr > value)
-                elif operator == "<":
-                    query = query.filter(attr < value)
-                elif operator == ">=":
-                    query = query.filter(attr >= value)
-                elif operator == "<=":
-                    query = query.filter(attr <= value)
-                elif operator == "ilike":
-                    query = query.filter(attr.ilike(f"%{value}%"))
-                    
-        return query
+        from backend.core.base_model import Environment
+        env = Environment(query.session, user_id=user.id)
+        return model_cls.apply_domain_to_query(query, domain, env=env)
 
     @staticmethod
     def get_visible_fields(user, model_cls):

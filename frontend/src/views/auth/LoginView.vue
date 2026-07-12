@@ -21,10 +21,10 @@
         <!-- Header -->
         <div class="auth-header">
           <div class="logo-wrapper">
-            <img :src="logoImage" alt="Znova" class="logo" />
+            <img :src="logoImage" alt="TransitOps" class="logo" />
           </div>
           <h1>Sign In</h1>
-          <p>Welcome back to Znova framework.</p>
+          <p>Welcome back to TransitOps.</p>
         </div>
 
         <!-- Form -->
@@ -141,7 +141,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../../core/useAuth';
 import api from '../../core/api';
-import logoImage from '@/assets/znova_logo_no_bg.png';
+import logoImage from '../../assets/transitops_mark.svg';
 
 const router = useRouter();
 const { login } = useAuth();
@@ -195,6 +195,7 @@ const handleGoogleLogin = async () => {
     const response = await api.get('/auth/google');
     const { auth_url, state } = response.data;
     localStorage.setItem('google_oauth_state', state);
+    localStorage.removeItem('google_signup_context');
     window.location.href = auth_url;
   } catch (err: any) {
     error.value = err.response?.data?.detail || 'Google login failed. Please try again.';

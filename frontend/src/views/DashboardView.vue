@@ -1,8 +1,8 @@
 <template>
   <div class="dashboard-view">
     <div class="dashboard-content">
-      <h1>Welcome to GearGuard</h1>
-      <p>Select a module from the sidebar to start managing your assets.</p>
+      <h1>Welcome to TransitOps</h1>
+      <p>Select a module from the sidebar to manage transport operations.</p>
     </div>
   </div>
 </template>

@@ -2,7 +2,10 @@ from enum import Enum
 
 class RoleName(str, Enum):
     ADMIN = "admin"
-    USER = "user"
+    FLEET_MANAGER = "fleet_manager"
+    DRIVER = "driver"
+    SAFETY_OFFICER = "safety_officer"
+    FINANCIAL_ANALYST = "financial_analyst"
 
 class Permission(str, Enum):
     READ = "read"

@@ -1,7 +1,7 @@
 {
-  "name": "mini-framework-root",
+  "name": "transitops-root",
   "version": "1.0.0",
-  "description": "Root configuration for Mini Framework",
+  "description": "TransitOps root configuration",
   "scripts": {
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",

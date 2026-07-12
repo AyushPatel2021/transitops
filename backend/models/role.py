@@ -4,8 +4,10 @@ from backend.core import fields
 class Role(ZnovaModel):
     __tablename__ = "roles"
     _model_name_ = "role"
+    _name_field_ = "display_name"
     
-    name = fields.Char(label="Role Name", required=True, size=50)
+    display_name = fields.Char(label="Display Name", required=True, size=100)
+    name = fields.Char(label="Technical Name", required=True, size=50)
     description = fields.Char(label="Description", size=200)
     permissions = fields.JSON(label="Model Permissions", default=dict)
     domain_rules = fields.JSON(label="Domain Rules", default=dict)
@@ -40,13 +42,34 @@ class Role(ZnovaModel):
             "delete": True,
             "domain": []  # Can manage all roles
         },
-        "user": {
+        "fleet_manager": {
             "create": False,
-            "read": True,
+            "read": False,
             "write": False,
             "delete": False,
-            "domain": []  # Can see all roles but not modify
-        }
+            "domain": []
+        },
+        "driver": {
+            "create": False,
+            "read": False,
+            "write": False,
+            "delete": False,
+            "domain": []
+        },
+        "safety_officer": {
+            "create": False,
+            "read": False,
+            "write": False,
+            "delete": False,
+            "domain": []
+        },
+        "financial_analyst": {
+            "create": False,
+            "read": False,
+            "write": False,
+            "delete": False,
+            "domain": []
+        },
     }
 
     _ui_views = {
@@ -54,7 +77,7 @@ class Role(ZnovaModel):
             "groups": [
                 {
                     "title": "Basic Information",
-                    "fields": ["name", "description"]
+                    "fields": ["display_name", "name", "description"]
                 }
             ],
             "header_buttons": [
@@ -97,8 +120,8 @@ class Role(ZnovaModel):
             ]
         },
         "list": {
-            "fields": ["name", "description"],
-            "search_fields": ["name", "description"]
+            "fields": ["display_name", "name", "description"],
+            "search_fields": ["display_name", "name", "description"]
         }
     }
 
@@ -109,7 +132,7 @@ class Role(ZnovaModel):
             "res_model": "user",
             "view_mode": "list,form",
             "domain": [("role_id", "=", self.id)],
-            "name": f"Users with {self.name} role"
+            "name": f"Users with {self.display_name} role"
         }
 
     def action_duplicate_role(self):
@@ -119,7 +142,7 @@ class Role(ZnovaModel):
             "tag": "display_notification",
             "params": {
                 "title": "Duplicate Role",
-                "message": f"Role duplication functionality would create a copy of {self.name}",
+                "message": f"Role duplication functionality would create a copy of {self.display_name}",
                 "type": "info"
             }
         }

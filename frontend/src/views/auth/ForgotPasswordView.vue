@@ -21,7 +21,7 @@
         <!-- Header -->
         <div class="auth-header">
           <div class="logo-wrapper">
-            <img :src="logoImage" alt="Znova" class="logo" />
+            <img :src="logoImage" alt="TransitOps" class="logo" />
           </div>
           <h1>Reset Your Password</h1>
           <p>Enter your email address and we'll send you a link to reset your password</p>
@@ -90,7 +90,7 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue';
 import api from '../../core/api';
-import logoImage from '@/assets/znova_logo_no_bg.png';
+import logoImage from '../../assets/transitops_mark.svg';
 
 const email = ref('');
 const loading = ref(false);

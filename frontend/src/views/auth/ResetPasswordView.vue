@@ -21,7 +21,7 @@
         <!-- Header -->
         <div class="auth-header">
           <div class="logo-wrapper">
-            <img :src="logoImage" alt="Znova" class="logo" />
+            <img :src="logoImage" alt="TransitOps" class="logo" />
           </div>
           <h1>Set New Password</h1>
           <p>Enter your new password below</p>
@@ -144,7 +144,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../../core/api';
-import logoImage from '@/assets/znova_logo_no_bg.png';
+import logoImage from '../../assets/transitops_mark.svg';
 
 const route = useRoute();
 

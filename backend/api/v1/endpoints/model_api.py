@@ -964,6 +964,10 @@ def call_model_method(
         
     if not policy_engine.can_access_record(current_user, model_name, "read", record, context=None):
         raise HTTPException(status_code=403, detail="Permission denied")
+
+    if method_name.startswith("action_") and not method_name.startswith("action_view"):
+        if not policy_engine.can_access_record(current_user, model_name, "write", record, context=None):
+            raise HTTPException(status_code=403, detail="Permission denied")
         
     method = getattr(record, method_name, None)
     if not method or not callable(method):

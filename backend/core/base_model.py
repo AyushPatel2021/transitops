@@ -130,7 +130,10 @@ class Recordset:
         return True
 
     def create(self, vals):
-        record = self._model.create(self.env.db, vals)
+        create_kwargs = {}
+        if self.env.user_id:
+            create_kwargs["user_id"] = self.env.user_id
+        record = self._model.create(self.env.db, vals, **create_kwargs)
         return Recordset(self._model, self.env, [record])
 
     def unlink(self):
@@ -1642,6 +1645,11 @@ class BaseModel(Base):
     @property
     def display_name(self):
         """Returns a string representation for UI display."""
+        name_field = getattr(type(self), "_name_field_", None)
+        if name_field and hasattr(self, name_field):
+            value = getattr(self, name_field)
+            if value:
+                return value
         return (
             getattr(self, "name", None) or 
             getattr(self, "full_name", None) or 
@@ -1853,6 +1861,7 @@ class BaseModel(Base):
                     # With __getattribute__ override, val is now the related record object
                     if hasattr(val, 'id'):
                         display_name = (
+                            getattr(val, "display_name", None) or
                             getattr(val, "name", None) or 
                             getattr(val, "full_name", None) or 
                             getattr(val, "subject", None) or 

@@ -76,13 +76,6 @@ class Notification(ZnovaModel):
             "write": True,
             "delete": True,
             "domain": []  # Can manage all notifications
-        },
-        "user": {
-            "create": False,
-            "read": True,
-            "write": True,  # Can mark as read
-            "delete": False,
-            "domain": [("user_id", "=", "user.id")]  # Only their own notifications
         }
     }
     
