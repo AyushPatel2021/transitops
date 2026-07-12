@@ -1,0 +1,94 @@
+@use "./variables" as v;
+
+/* Global Scrollbar Styles */
+/* These styles will be applied globally unless overridden by specific components */
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: v.$bg-main;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: v.$scrollbar-thumb;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: v.$scrollbar-thumb-hover;
+  }
+  
+  &:active {
+    background: v.$scrollbar-thumb-active;
+  }
+}
+
+::-webkit-scrollbar-corner {
+  background: v.$bg-main;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: v.$scrollbar-thumb v.$bg-main;
+}
+
+/* Custom scrollbar for dark areas */
+.dark-scrollbar {
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    &:active {
+      background: rgba(255, 255, 255, 0.4);
+    }
+  }
+  
+  /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* Thin scrollbar variant */
+.thin-scrollbar {
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* Hidden scrollbar (but still scrollable) */
+.hidden-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Hover-only scrollbar */
+.hover-scrollbar {
+  &::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+  
+  &:hover::-webkit-scrollbar-thumb {
+    background: v.$scrollbar-thumb;
+    
+    &:hover {
+      background: v.$scrollbar-thumb-hover;
+    }
+  }
+}

@@ -1,0 +1,73 @@
+@use "sass:color";
+@use "./variables" as v;
+@use "./scrollbar";
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: v.$bg-main;
+  color: v.$text-primary;
+  line-height: 1.5;
+}
+
+.btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  
+  &.btn-primary { 
+    background: v.$primary-color; 
+    color: white;
+    &:hover { background: v.$primary-hover; }
+  }
+  
+  &.btn-secondary { 
+    background: v.$border-light; 
+    color: v.$text-secondary;
+    border: 1px solid v.$border-color;
+    &:hover { background: v.$border-color; }
+  }
+
+  &.btn-success {
+    background: v.$success-color;
+    color: white;
+    &:hover { filter: brightness(0.9); }
+  }
+
+  &.btn-danger {
+    background: v.$danger-color;
+    color: white;
+    &:hover:not(:disabled) {
+      filter: brightness(0.9);
+    }
+  }
+
+  &.btn-sm {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+  }
+}
+
+.error { color: v.$danger-color; }
+.loading { color: v.$text-secondary; font-style: italic; }
+
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  
+  &.badge-primary { background: color-mix(in srgb, v.$primary-color 10%, transparent); color: v.$primary-color; }
+  &.badge-success { background: color-mix(in srgb, v.$success-color 10%, transparent); color: v.$success-color; }
+  &.badge-danger { background: color-mix(in srgb, v.$danger-color 10%, transparent); color: v.$danger-color; }
+  &.badge-warning { background: v.$warning-bg; color: v.$warning-text; }
+}

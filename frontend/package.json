@@ -1,0 +1,31 @@
+{
+    "name": "enterprise-metadata-frontend",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vue-tsc && vite build",
+        "preview": "vite preview",
+        "test": "vitest --run"
+    },
+    "dependencies": {
+        "@primevue/themes": "^4.5.4",
+        "axios": "^1.6.2",
+        "lucide-vue-next": "^0.562.0",
+        "pinia": "^3.0.4",
+        "primevue": "^4.5.4",
+        "vue": "^3.3.8",
+        "vue-router": "^4.6.4"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-vue": "^6.0.7",
+        "@vue/test-utils": "^2.4.6",
+        "jsdom": "^27.4.0",
+        "sass": "^1.69.5",
+        "typescript": "^5.2.2",
+        "vite": "^8.1.4",
+        "vitest": "^4.1.10",
+        "vue-tsc": "^3.3.6"
+    }
+}

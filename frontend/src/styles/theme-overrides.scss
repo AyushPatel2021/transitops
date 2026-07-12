@@ -1,0 +1,266 @@
+// ===== COMPREHENSIVE THEME OVERRIDES =====
+// This file provides comprehensive theme overrides for all components
+// to ensure consistent theming across light and dark modes
+
+// Import variables for reference
+@use "./variables" as v;
+
+// Global form field overrides
+input[type="text"],
+input[type="email"], 
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="datetime-local"],
+textarea,
+select {
+  background-color: var(--theme-input-bg) !important;
+  color: var(--theme-text-primary) !important;
+  border-color: var(--theme-border-color) !important;
+  border-radius: var(--theme-radius-sm) !important; // Rounded corners
+  
+  &::placeholder {
+    color: var(--theme-text-placeholder) !important;
+  }
+  
+  &:hover {
+    border-color: var(--theme-border-hover) !important;
+  }
+  
+  &:focus {
+    border-color: var(--theme-border-focus) !important;
+    background-color: var(--theme-input-bg) !important;
+  }
+  
+  &:disabled {
+    background-color: var(--theme-input-disabled-bg) !important;
+    color: var(--theme-input-disabled-text) !important;
+  }
+}
+
+// Override specific component patterns
+.field-wrapper,
+.input-wrapper,
+.form-field {
+  .field-label,
+  .input-label,
+  label {
+    color: var(--theme-text-secondary) !important;
+  }
+  
+  .field-input,
+  .text-input,
+  input {
+    background-color: var(--theme-input-bg) !important;
+    color: var(--theme-text-primary) !important;
+    border-color: var(--theme-border-color) !important;
+    border-radius: var(--theme-radius-sm) !important; // Rounded corners
+  }
+  
+  .field-help,
+  .help-text,
+  small {
+    color: var(--theme-text-muted) !important;
+  }
+}
+
+// Table and list overrides
+table,
+.table,
+.data-table,
+.list-table {
+  background-color: var(--theme-bg-card) !important;
+  border-radius: var(--theme-radius-md) !important; // Rounded corners
+  overflow: hidden; // Ensure rounded corners work
+  
+  thead th,
+  .table-header {
+    background-color: var(--theme-table-header-bg) !important;
+    color: var(--theme-text-secondary) !important;
+    border-color: var(--theme-border-color) !important;
+  }
+  
+  tbody td,
+  .table-cell {
+    color: var(--theme-text-primary) !important;
+    border-color: var(--theme-border-light) !important;
+  }
+  
+  tbody tr:hover td,
+  .table-row:hover .table-cell {
+    background-color: var(--theme-table-row-hover) !important;
+  }
+  
+  tbody tr.selected td,
+  .table-row.selected .table-cell {
+    background-color: var(--theme-table-row-selected) !important;
+  }
+}
+
+// Button overrides for non-primary buttons
+.btn:not(.btn-primary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info),
+.button:not(.btn-primary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info) {
+  background-color: var(--theme-button-bg) !important;
+  color: var(--theme-button-text) !important;
+  border-color: var(--theme-button-border) !important;
+  
+  &:hover {
+    background-color: var(--theme-button-hover-bg) !important;
+    border-color: var(--theme-button-hover-border) !important;
+  }
+}
+
+// Card and panel overrides
+.card,
+.panel,
+.form-sheet,
+.content-panel,
+.modal-content,
+.dialog-content {
+  background-color: var(--theme-bg-card) !important;
+  border-color: var(--theme-border-color) !important;
+  border-radius: var(--theme-radius-md) !important; // Rounded corners
+  
+  .card-header,
+  .panel-header {
+    background-color: var(--theme-bg-secondary) !important;
+    border-color: var(--theme-border-color) !important;
+    color: var(--theme-text-primary) !important;
+  }
+  
+  .card-body,
+  .panel-body {
+    color: var(--theme-text-primary) !important;
+  }
+}
+
+// Dropdown and menu overrides
+.dropdown-menu,
+.select-dropdown,
+.menu-dropdown,
+.context-menu {
+  background-color: var(--theme-dropdown-bg) !important;
+  border-color: var(--theme-dropdown-border) !important;
+  box-shadow: var(--theme-shadow-lg) !important;
+  border-radius: var(--theme-radius-md) !important; // Rounded corners
+  
+  .dropdown-item,
+  .menu-item,
+  .select-option {
+    color: var(--theme-text-primary) !important;
+    
+    &:hover,
+    &.hover {
+      background-color: var(--theme-dropdown-item-hover) !important;
+    }
+    
+    &.selected,
+    &.active {
+      background-color: var(--theme-bg-selected) !important;
+      color: var(--theme-primary) !important;
+    }
+  }
+}
+
+// Navigation overrides
+.nav,
+.navigation,
+.breadcrumb {
+  .nav-item,
+  .nav-link,
+  .breadcrumb-item {
+    color: var(--theme-text-secondary) !important;
+    
+    &:hover {
+      color: var(--theme-text-primary) !important;
+      background-color: var(--theme-nav-item-hover) !important;
+    }
+    
+    &.active {
+      color: var(--theme-nav-item-active) !important;
+    }
+  }
+}
+
+// Text color overrides for common classes
+.text-primary { color: var(--theme-text-primary) !important; }
+.text-secondary { color: var(--theme-text-secondary) !important; }
+.text-muted { color: var(--theme-text-muted) !important; }
+.text-disabled { color: var(--theme-text-disabled) !important; }
+
+// Background overrides for common classes
+.bg-white { background-color: var(--theme-bg-card) !important; }
+.bg-light { background-color: var(--theme-bg-secondary) !important; }
+.bg-secondary { background-color: var(--theme-bg-secondary) !important; }
+
+// Border overrides for common classes
+.border { border-color: var(--theme-border-color) !important; }
+.border-light { border-color: var(--theme-border-light) !important; }
+.border-top { border-top-color: var(--theme-border-color) !important; }
+.border-bottom { border-bottom-color: var(--theme-border-color) !important; }
+.border-left { border-left-color: var(--theme-border-color) !important; }
+.border-right { border-right-color: var(--theme-border-color) !important; }
+
+// Specific component overrides that might be missed
+.form-control,
+.form-select,
+.form-input {
+  background-color: var(--theme-input-bg) !important;
+  color: var(--theme-text-primary) !important;
+  border-color: var(--theme-border-color) !important;
+  border-radius: var(--theme-radius-sm) !important; // Rounded corners
+}
+
+// List group overrides
+.list-group {
+  .list-group-item {
+    background-color: var(--theme-bg-card) !important;
+    color: var(--theme-text-primary) !important;
+    border-color: var(--theme-border-color) !important;
+    border-radius: var(--theme-radius-sm) !important; // Rounded corners
+    
+    &:hover {
+      background-color: var(--theme-table-row-hover) !important;
+    }
+  }
+}
+
+// Alert overrides (keep status colors but update backgrounds)
+.alert {
+  &:not(.alert-success):not(.alert-danger):not(.alert-warning):not(.alert-info) {
+    background-color: var(--theme-bg-secondary) !important;
+    color: var(--theme-text-primary) !important;
+    border-color: var(--theme-border-color) !important;
+  }
+}
+
+// Modal overrides
+.modal {
+  .modal-backdrop {
+    background-color: var(--theme-overlay-modal) !important;
+  }
+  
+  .modal-dialog {
+    .modal-content {
+      background-color: var(--theme-bg-card) !important;
+      border-color: var(--theme-border-color) !important;
+      border-radius: var(--theme-radius-lg) !important; // Rounded corners
+    }
+    
+    .modal-header {
+      background-color: var(--theme-bg-secondary) !important;
+      border-color: var(--theme-border-color) !important;
+      color: var(--theme-text-primary) !important;
+    }
+    
+    .modal-body {
+      background-color: var(--theme-bg-card) !important;
+      color: var(--theme-text-primary) !important;
+    }
+    
+    .modal-footer {
+      background-color: var(--theme-bg-secondary) !important;
+      border-color: var(--theme-border-color) !important;
+    }
+  }
+}
