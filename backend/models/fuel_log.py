@@ -81,6 +81,16 @@ class FuelLog(ZnovaModel):
         },
     }
 
+    _search_config = {
+        "filters": [
+            {"name": "has_trip", "label": "Linked to Trip", "domain": "[('trip_id', '!=', False)]"},
+            {"name": "standalone", "label": "Standalone Fill", "domain": "[('trip_id', '=', False)]"},
+        ],
+        "group_by": [
+            {"name": "by_vehicle", "label": "By Vehicle", "field": "vehicle_id"},
+        ],
+    }
+
     @classmethod
     def create(cls, db, vals, **kwargs):
         cls._validate_values(vals)

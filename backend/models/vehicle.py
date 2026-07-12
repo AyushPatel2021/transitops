@@ -124,10 +124,18 @@ class Vehicle(ZnovaModel):
     _search_config = {
         "filters": [
             {"name": "available", "label": "Available", "domain": "[('status', '=', 'available')]"},
+            {"name": "on_trip", "label": "On Trip", "domain": "[('status', '=', 'on_trip')]"},
+            {"name": "in_shop", "label": "In Shop", "domain": "[('status', '=', 'in_shop')]"},
+            {"name": "retired", "label": "Retired", "domain": "[('status', '=', 'retired')]"},
             {"name": "active", "label": "Active Fleet", "domain": "[('status', '!=', 'retired')]"},
+            {"name": "van", "label": "Van", "domain": "[('type', '=', 'Van')]"},
+            {"name": "truck", "label": "Truck", "domain": "[('type', '=', 'Truck')]"},
+            {"name": "trailer", "label": "Trailer", "domain": "[('type', '=', 'Trailer')]"},
+            {"name": "bike", "label": "Bike", "domain": "[('type', '=', 'Bike')]"},
         ],
         "group_by": [
             {"name": "by_status", "label": "By Status", "field": "status"},
+            {"name": "by_type", "label": "By Type", "field": "type"},
             {"name": "by_region", "label": "By Region", "field": "region_id"},
         ],
     }

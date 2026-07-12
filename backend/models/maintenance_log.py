@@ -77,6 +77,22 @@ class MaintenanceLog(ZnovaModel):
         },
     }
 
+    _search_config = {
+        "filters": [
+            {"name": "active", "label": "Active", "domain": "[('status', '=', 'active')]"},
+            {"name": "closed", "label": "Closed", "domain": "[('status', '=', 'closed')]"},
+            {"name": "oil_change", "label": "Oil Change", "domain": "[('maintenance_type', '=', 'Oil Change')]"},
+            {"name": "tyre", "label": "Tyre", "domain": "[('maintenance_type', '=', 'Tyre')]"},
+            {"name": "engine", "label": "Engine", "domain": "[('maintenance_type', '=', 'Engine')]"},
+            {"name": "brake", "label": "Brake", "domain": "[('maintenance_type', '=', 'Brake')]"},
+        ],
+        "group_by": [
+            {"name": "by_status", "label": "By Status", "field": "status"},
+            {"name": "by_type", "label": "By Type", "field": "maintenance_type"},
+            {"name": "by_vehicle", "label": "By Vehicle", "field": "vehicle_id"},
+        ],
+    }
+
     @classmethod
     def create(cls, db, vals, **kwargs):
         vals = vals.copy()
@@ -107,9 +123,10 @@ class MaintenanceLog(ZnovaModel):
             if existing:
                 raise UserError("A vehicle can only have one active maintenance log at a time.")
 
-        vehicle = env["vehicle"].browse(vehicle_id)
-        if vehicle and vehicle.status != "available":
-            raise UserError("Maintenance can only be started for an available vehicle.")
+        if vals.get("status", "active") == "active":
+            vehicle = env["vehicle"].browse(vehicle_id)
+            if vehicle and vehicle.status != "available":
+                raise UserError("Maintenance can only be started for an available vehicle.")
 
     def write(self, *args, **kwargs):
         vals = args[1] if len(args) == 2 else args[0] if args else kwargs.get("vals", {})

@@ -535,6 +535,7 @@ RECORDS = {
             "actual_distance": 281.0,
             "fuel_consumed": 28.5,
             "fuel_unit_cost": 95.0,
+            "revenue": 25000.0,
             "final_odometer": 45281.0,           # 45000 + 281 ≥ 45000 ✓
             "status": "completed",
             "created_by": "@demo_user_driver_1",
@@ -552,6 +553,7 @@ RECORDS = {
             "actual_distance": 398.0,
             "fuel_consumed": 62.0,
             "fuel_unit_cost": 95.0,
+            "revenue": 5000.0,
             "final_odometer": 62198.0,           # 61800 + 398 ✓
             "status": "completed",
             "created_by": "@demo_user_fleet_mgr_1",
@@ -569,6 +571,7 @@ RECORDS = {
             "actual_distance": 194.0,
             "fuel_consumed": 19.8,
             "fuel_unit_cost": 95.0,
+            "revenue": 8000.0,
             "final_odometer": 9994.0,            # 9800 + 194 ✓
             "status": "completed",
             "created_by": "@demo_user_driver_2",
@@ -587,6 +590,7 @@ RECORDS = {
             "actual_distance": 58.0,
             "fuel_consumed": 3.2,
             "fuel_unit_cost": 95.0,
+            "revenue": 1500.0,
             "final_odometer": 78358.0,           # 78300 + 58 ✓
             "status": "completed",
             "created_by": "@demo_user_driver_4",

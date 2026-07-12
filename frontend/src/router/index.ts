@@ -67,6 +67,26 @@ const routes = [
                 component: () => import('../views/ProfileView.vue'),
                 meta: { title: 'My Profile' }
             },
+            {
+                path: '/reports/fuel-efficiency',
+                name: 'FuelEfficiency',
+                component: () => import('../views/reports/FuelEfficiencyReport.vue'),
+            },
+            {
+                path: '/reports/fleet-utilization',
+                name: 'FleetUtilization',
+                component: () => import('../views/reports/FleetUtilizationReport.vue'),
+            },
+            {
+                path: '/reports/operational-cost',
+                name: 'OperationalCost',
+                component: () => import('../views/reports/OperationalCostReport.vue'),
+            },
+            {
+                path: '/reports/roi',
+                name: 'ROI',
+                component: () => import('../views/reports/RoiReport.vue'),
+            },
         ]
     },
     {

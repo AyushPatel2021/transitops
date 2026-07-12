@@ -139,9 +139,9 @@ class User(ZnovaModel):
                 "domain": "[('is_active', '=', False)]"
             },
             {
-                "name": "recent_login",
-                "label": "Recently Logged In (Last 7 Days)",
-                "domain": "[('last_login_at', '>=', datetime.now() - timedelta(days=7))]"
+                "name": "locked",
+                "label": "Locked Accounts",
+                "domain": "[('locked_until', '!=', None)]"
             },
             {
                 "name": "never_logged_in",
@@ -159,11 +159,6 @@ class User(ZnovaModel):
                 "name": "by_status",
                 "label": "By Active Status",
                 "field": "is_active"
-            },
-            {
-                "name": "by_theme",
-                "label": "By Theme Preference",
-                "field": "theme"
             }
         ]
     }

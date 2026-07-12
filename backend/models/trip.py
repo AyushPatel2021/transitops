@@ -37,6 +37,7 @@ class Trip(ZnovaModel):
     actual_distance = fields.Float(label="Actual Distance (km)")
     fuel_consumed = fields.Float(label="Fuel Consumed (L)")
     fuel_unit_cost = fields.Float(label="Fuel Cost (1 L)")
+    revenue = fields.Float(label="Revenue")
     total_fuel_cost = fields.Float(label="Total Fuel Cost", compute="_compute_total_fuel_cost", store=False, readonly=True)
     final_odometer = fields.Float(label="Final Odometer")
     status = fields.Selection(
@@ -89,6 +90,7 @@ class Trip(ZnovaModel):
                     "groups": [
                         {"title": "Final Readings", "fields": ["actual_distance", "final_odometer"]},
                         {"title": "Fuel", "fields": ["fuel_consumed", "fuel_unit_cost", "total_fuel_cost"]},
+                        {"title": "Revenue", "fields": ["revenue"]},
                     ],
                 },
                 {
@@ -119,12 +121,16 @@ class Trip(ZnovaModel):
     _search_config = {
         "filters": [
             {"name": "draft", "label": "Draft", "domain": "[('status', '=', 'draft')]"},
+            {"name": "dispatched", "label": "Dispatched", "domain": "[('status', '=', 'dispatched')]"},
+            {"name": "completed", "label": "Completed", "domain": "[('status', '=', 'completed')]"},
+            {"name": "cancelled", "label": "Cancelled", "domain": "[('status', '=', 'cancelled')]"},
             {"name": "active", "label": "Active", "domain": "[('status', '=', 'dispatched')]"},
             {"name": "my_trips", "label": "My Trips", "domain": "['|', ('created_by', '=', user.id), ('driver_id.user_id', '=', user.id)]"},
         ],
         "group_by": [
             {"name": "by_status", "label": "By Status", "field": "status"},
             {"name": "by_vehicle", "label": "By Vehicle", "field": "vehicle_id"},
+            {"name": "by_driver", "label": "By Driver", "field": "driver_id"},
         ],
     }
 
@@ -237,8 +243,8 @@ class Trip(ZnovaModel):
     def action_complete(self):
         if self.status != "dispatched":
             raise UserError("Only dispatched trips can be completed.")
-        if self.final_odometer is None or self.fuel_consumed is None or self.fuel_unit_cost is None:
-            raise UserError("Final odometer, fuel consumed, and fuel cost per liter are required before completing a trip.")
+        if self.final_odometer is None or self.fuel_consumed is None or self.fuel_unit_cost is None or self.revenue is None:
+            raise UserError("Final odometer, fuel consumed, fuel cost per liter, and revenue are required before completing a trip.")
         if self.final_odometer < self.vehicle.odometer:
             raise UserError("Final odometer cannot be lower than the vehicle's current odometer.")
         self._allow_status_transition = True

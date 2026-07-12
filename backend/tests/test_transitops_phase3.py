@@ -124,6 +124,7 @@ def test_phase3_trip_dispatch_complete_cancel_and_validation(db):
         "fuel_consumed": 18.5,
         "fuel_unit_cost": 4.25,
         "final_odometer": 182.0,
+        "revenue": 500.0,
         "status": "dispatched",
     })
     assert trip.total_fuel_cost == 78.625

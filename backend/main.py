@@ -29,7 +29,7 @@ from backend.core.migration_manager import create_migration_manager
 from backend.core.error_handler import setup_error_handlers
 from backend.core.websocket_manager import get_websocket_manager
 from backend.services.auth_service import get_password_hash
-from backend.api.v1.endpoints import model_api, auth_api, profile_api, websocket_api, notification_api
+from backend.api.v1.endpoints import model_api, auth_api, profile_api, websocket_api, notification_api, dashboard_api
 from backend import models
 
 @asynccontextmanager
@@ -168,6 +168,7 @@ app.include_router(auth_api.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(profile_api.router, prefix="/api/v1", tags=["Profile"])
 app.include_router(websocket_api.router, prefix="/api/v1", tags=["WebSocket"])
 app.include_router(notification_api.router, prefix="/api/v1", tags=["Notifications"])
+app.include_router(dashboard_api.router, prefix="/api/v1", tags=["Dashboard"])
 
 @app.get("/")
 def read_root():

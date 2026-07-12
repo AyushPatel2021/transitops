@@ -76,6 +76,19 @@ class Expense(ZnovaModel):
         },
     }
 
+    _search_config = {
+        "filters": [
+            {"name": "toll", "label": "Toll", "domain": "[('expense_type', '=', 'Toll')]"},
+            {"name": "fine", "label": "Fine", "domain": "[('expense_type', '=', 'Fine')]"},
+            {"name": "maintenance", "label": "Maintenance", "domain": "[('expense_type', '=', 'Maintenance')]"},
+            {"name": "other", "label": "Other", "domain": "[('expense_type', '=', 'Other')]"},
+        ],
+        "group_by": [
+            {"name": "by_type", "label": "By Type", "field": "expense_type"},
+            {"name": "by_vehicle", "label": "By Vehicle", "field": "vehicle_id"},
+        ],
+    }
+
     @classmethod
     def create(cls, db, vals, **kwargs):
         cls._validate_values(vals)

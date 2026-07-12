@@ -1355,10 +1355,12 @@ const getInitials = (name: string) => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   min-height: 0;
   min-width: 0;
+  width: 100%;
 }
 
 // ========== FIXED TOP HEADER ==========

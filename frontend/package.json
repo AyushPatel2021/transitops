@@ -12,10 +12,12 @@
     "dependencies": {
         "@primevue/themes": "^4.5.4",
         "axios": "^1.6.2",
+        "chart.js": "^4.5.1",
         "lucide-vue-next": "^0.562.0",
         "pinia": "^3.0.4",
         "primevue": "^4.5.4",
         "vue": "^3.3.8",
+        "vue-chartjs": "^5.3.4",
         "vue-router": "^4.6.4"
     },
     "devDependencies": {

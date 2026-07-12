@@ -45,16 +45,16 @@ def initialize_menus(menu_manager: 'MenuManager'):
     ))
 
     menu_manager.add_item("Reports", MenuItem(
-        "fuel_efficiency_report", "Fuel Efficiency", "/models/fuel.log?report=fuel_efficiency", "Gauge", sequence=10, groups=reports_roles
+        "fuel_efficiency_report", "Fuel Efficiency", "/reports/fuel-efficiency", "Gauge", sequence=10, groups=reports_roles
     ))
     menu_manager.add_item("Reports", MenuItem(
-        "fleet_utilization_report", "Fleet Utilization", "/models/vehicle?report=fleet_utilization", "Activity", sequence=20, groups=reports_roles
+        "fleet_utilization_report", "Fleet Utilization", "/reports/fleet-utilization", "Activity", sequence=20, groups=["admin", "fleet_manager"]
     ))
     menu_manager.add_item("Reports", MenuItem(
-        "operational_cost_report", "Operational Cost", "/models/expense?report=operational_cost", "TrendingUp", sequence=30, groups=reports_roles
+        "operational_cost_report", "Operational Cost", "/reports/operational-cost", "TrendingUp", sequence=30, groups=reports_roles
     ))
     menu_manager.add_item("Reports", MenuItem(
-        "roi_report", "ROI", "/models/vehicle?report=roi", "BadgeDollarSign", sequence=40, groups=reports_roles
+        "roi_report", "ROI", "/reports/roi", "BadgeDollarSign", sequence=40, groups=reports_roles
     ))
 
     menu_manager.add_item("Settings", MenuItem(

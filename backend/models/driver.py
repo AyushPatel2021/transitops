@@ -121,10 +121,17 @@ class Driver(ZnovaModel):
     _search_config = {
         "filters": [
             {"name": "available", "label": "Available", "domain": "[('status', '=', 'available')]"},
+            {"name": "on_trip", "label": "On Trip", "domain": "[('status', '=', 'on_trip')]"},
             {"name": "suspended", "label": "Suspended", "domain": "[('status', '=', 'suspended')]"},
+            {"name": "off_duty", "label": "Off Duty", "domain": "[('status', '=', 'off_duty')]"},
+            {"name": "expiring_license", "label": "License Expiring (30 days)", "domain": "[('license_expiry_date', '<=', (date.today() + timedelta(days=30)).isoformat()), ('license_expiry_date', '>=', date.today().isoformat())]"},
+            {"name": "expired_license", "label": "License Expired", "domain": "[('license_expiry_date', '<', date.today().isoformat())]"},
+            {"name": "lmv", "label": "LMV", "domain": "[('license_category', '=', 'LMV')]"},
+            {"name": "hmv", "label": "HMV", "domain": "[('license_category', '=', 'HMV')]"},
         ],
         "group_by": [
             {"name": "by_status", "label": "By Status", "field": "status"},
+            {"name": "by_license_category", "label": "By License Category", "field": "license_category"},
             {"name": "by_region", "label": "By Region", "field": "region_id"},
         ],
     }
