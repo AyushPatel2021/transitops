@@ -322,7 +322,7 @@ Shared TransitOps constants and helpers live in `backend/models/transitops_commo
 
 - Set a strong `SECRET_KEY`.
 - Set `ENVIRONMENT=production`.
-- Disable debug mode.
+- Disable debug mode. 
 - Use production PostgreSQL credentials.
 - Configure CORS for the production frontend domain.
 - Configure HTTPS at the proxy/load balancer.
