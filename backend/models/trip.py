@@ -1,5 +1,6 @@
 from datetime import date
 from datetime import datetime
+import logging
 
 from backend.core import api
 from backend.core import fields
@@ -13,6 +14,8 @@ from backend.models.transitops_common import ROLE_FINANCE
 from backend.models.transitops_common import ROLE_FLEET
 from backend.models.transitops_common import ROLE_SAFETY
 from backend.models.transitops_common import notify
+
+logger = logging.getLogger(__name__)
 
 
 class Trip(ZnovaModel):
@@ -227,6 +230,59 @@ class Trip(ZnovaModel):
         if self.cargo_weight > self.vehicle.max_load_capacity:
             raise UserError("Cargo weight cannot exceed vehicle max load capacity.")
 
+    def _notify_assigned_driver(self):
+        user = self.driver.user_id if self.driver else None
+        if not user:
+            return
+
+        try:
+            from backend.services.notification_service import get_notification_service
+
+            get_notification_service(self.env.db).notify_user(
+                user_id=user.id,
+                title="Trip assigned",
+                message=f"You've been assigned trip: {self.source} -> {self.destination}",
+                notification_type="info",
+                action={
+                    "type": "navigate",
+                    "target": f"/models/trip/{self.id}",
+                },
+                created_by=self.created_by.id if self.created_by else None,
+            )
+        except Exception as exc:
+            logger.warning("Failed to notify assigned driver for trip %s: %s", self.id, exc)
+
+    def _notify_fleet_managers_trip_completed(self):
+        try:
+            from backend.services.notification_service import get_notification_service
+
+            role = self.env["role"].search([("name", "=", ROLE_FLEET)], limit=1)
+            if not role:
+                return
+
+            fleet_users = self.env["user"].search([
+                ("role_id", "=", role.id),
+                ("is_active", "=", True),
+            ])
+            user_ids = fleet_users.ids()
+            if not user_ids:
+                return
+
+            vehicle_name = self.vehicle.registration_number if self.vehicle else "Vehicle"
+            get_notification_service(self.env.db).notify_users(
+                user_ids=user_ids,
+                title="Trip completed",
+                message=f"Trip {self.id} completed - {vehicle_name} back to Available",
+                notification_type="success",
+                action={
+                    "type": "navigate",
+                    "target": f"/models/trip/{self.id}",
+                },
+                created_by=self.created_by.id if self.created_by else None,
+            )
+        except Exception as exc:
+            logger.warning("Failed to notify fleet managers for completed trip %s: %s", self.id, exc)
+
     def action_dispatch(self):
         if self.status != "draft":
             raise UserError("Only draft trips can be dispatched.")
@@ -238,6 +294,7 @@ class Trip(ZnovaModel):
             self._allow_status_transition = False
         self.vehicle.write({"status": "on_trip"})
         self.driver.write({"status": "on_trip"})
+        self._notify_assigned_driver()
         return notify("Trip Dispatched", f"Trip to {self.destination} has been dispatched.")
 
     def action_complete(self):
@@ -261,6 +318,7 @@ class Trip(ZnovaModel):
             "cost": self.total_fuel_cost,
             "odometer_reading": self.final_odometer,
         })
+        self._notify_fleet_managers_trip_completed()
         return notify("Trip Completed", f"Trip to {self.destination} has been completed.")
 
     def action_cancel(self):

@@ -136,5 +136,63 @@ class EmailService:
         
         return self.send_email(to_email, subject, html_content, text_content)
 
+    def send_driver_license_expiry_email(
+        self,
+        to_email: str,
+        driver_name: str,
+        license_number: str,
+        expiry_date: str,
+        days_left: int,
+    ) -> bool:
+        """Send driver license expiry reminder email."""
+        subject = "Driving License Expiry Reminder - TransitOps"
+        status_line = (
+            f"Your driving license expires in {days_left} day{'s' if days_left != 1 else ''}."
+            if days_left >= 0
+            else "Your driving license has expired."
+        )
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 24px;">
+                <h2 style="margin: 0 0 16px;">Driving License Reminder</h2>
+                <p>Hello {driver_name},</p>
+                <p>{status_line}</p>
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e5e7eb;"><strong>License Number</strong></td>
+                        <td style="padding: 8px; border: 1px solid #e5e7eb;">{license_number}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e5e7eb;"><strong>Expiry Date</strong></td>
+                        <td style="padding: 8px; border: 1px solid #e5e7eb;">{expiry_date}</td>
+                    </tr>
+                </table>
+                <p>Please renew the license and update TransitOps before dispatch assignment.</p>
+                <p>TransitOps Team</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        text_content = f"""
+        Driving License Reminder
+
+        Hello {driver_name},
+
+        {status_line}
+
+        License Number: {license_number}
+        Expiry Date: {expiry_date}
+
+        Please renew the license and update TransitOps before dispatch assignment.
+
+        TransitOps Team
+        """
+
+        return self.send_email(to_email, subject, html_content, text_content)
+
 # Global instance
 email_service = EmailService()

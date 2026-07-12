@@ -1,3 +1,6 @@
+from datetime import datetime
+
+
 RECORDS = {
     # Roles
     "role_admin": {
@@ -81,6 +84,23 @@ RECORDS = {
             "role_id": "@role_admin",        # Symbolic reference
             "timezone_id": "@tz_utc",        # Default to UTC timezone
             "is_active": True
+        },
+        "noupdate": True
+    },
+    # Cron Jobs
+    "cron_driver_license_expiry_reminders": {
+        "model": "cron",
+        "values": {
+            "name": "Driver License Expiry Notifications",
+            "code": "driver.license.expiry.reminders",
+            "model_name": "driver",
+            "function_name": "send_license_expiry_reminders",
+            "interval_number": 1,
+            "interval_type": "days",
+            "next_call": datetime.now(),
+            "active": True,
+            "priority": 5,
+            "description": "Notify Safety Officers daily when driver licenses expire within 30 days."
         },
         "noupdate": True
     },

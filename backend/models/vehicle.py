@@ -39,6 +39,12 @@ class Vehicle(ZnovaModel):
         tracking=True,
     )
     region_id = fields.Many2one("region", label="Region", domain="[('active', '=', True)]")
+    attachments = fields.Attachments(
+        label="Attachments",
+        max_files=12,
+        allowed_types=["pdf", "jpg", "jpeg", "png", "doc", "docx"],
+        help="Registration, insurance, permit, and vehicle documents",
+    )
 
     _role_permissions = {
         ROLE_ADMIN: ADMIN_ALL,
@@ -71,6 +77,12 @@ class Vehicle(ZnovaModel):
                     "title": "Financials",
                     "groups": [
                         {"title": "Cost", "fields": ["acquisition_cost", "total_operational_cost"]},
+                    ],
+                },
+                {
+                    "title": "Attachments",
+                    "groups": [
+                        {"title": "Documents", "fields": ["attachments"]},
                     ],
                 },
             ],
